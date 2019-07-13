@@ -1,3 +1,5 @@
 ws/devel/
 ws/build/
 ws/src/CMakeLists.txt
+*.swp
+*.vimrc
