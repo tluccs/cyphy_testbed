@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
 
-project(state_aggregator_pkg)
+project(state_aggregator)
 
 # Find required packages
 find_package(

@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package>
-	<name>state_aggregator_pkg</name>
+	<name>state_aggregator</name>
 	<version>0.0.1</version>
 	<description>Information Management</description>
 
