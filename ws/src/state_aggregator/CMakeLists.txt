@@ -9,6 +9,7 @@ find_package(
 	tf 
 	std_msgs
 	)
+find_package (Eigen3 REQUIRED NO_MODULE)
 
 catkin_package(
 	INCLUDE_DIRS include/ # The package contains header files
@@ -18,7 +19,6 @@ catkin_package(
 # Since we use eigen
 include_directories(
 	include/
-	/home/rt-2pm2/Extensions/eigen/
 	${catkin_INCLUDE_DIRS} # Found in "find_package"
 	)
 
@@ -34,4 +34,5 @@ add_dependencies(state_aggregator
 
 target_link_libraries(state_aggregator
 	${catkin_LIBRARIES}
+	Eigen3::Eigen 
 	)
