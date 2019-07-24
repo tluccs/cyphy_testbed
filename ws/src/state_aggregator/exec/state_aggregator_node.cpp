@@ -5,21 +5,22 @@
 
 int main(int argc, char** argv) {
 
-    ros::init(argc, argv, "state_aggregator");
-    ros::NodeHandle nh;
+        ros::init(argc, argv, "state_aggregator");
+        ros::NodeHandle nh;
 
-    ROS_INFO("Starting State Aggregator Node");
+        ROS_INFO("Starting State Aggregator Node");
 
-    StateAggregator sa;
-   
-    if(!sa.Initialize(nh)) {
-        ROS_ERROR("%s: Failed to initialize state_aggregator.",
-              ros::this_node::getName().c_str());
-        return EXIT_FAILURE;
-    }
+        StateAggregator sa;
 
-    ros::spin();
+        if(!sa.Initialize(nh)) {
+                ROS_ERROR("%s: Failed to initialize state_aggregator.",
+                                ros::this_node::getName().c_str());
+                return EXIT_FAILURE;
+        }
 
-    return EXIT_SUCCESS;
+        ros::MultiThreadedSpinner spinner(3);
+        spinner.spin();
+
+        return EXIT_SUCCESS;
 }
 
