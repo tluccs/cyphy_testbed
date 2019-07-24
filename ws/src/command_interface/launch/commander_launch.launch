@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-    <arg name="frame" default="cf1" />
+	<arg name="frame" default="cf1" />
 
 <!--
 ============================================================================
@@ -9,6 +9,7 @@ Trajectory Generation Service
 <node name="traj_generator" pkg="command_interface" type="plan_trajectory.py" output="screen"> 
 </node>
 
+<group ns="cf1">
 <!-- 
 ===========================================================================
 Run the node publishing the setpoint value as odometry message which can be visualized in
@@ -16,6 +17,7 @@ rviz
 -->
 <node name="setpoint_odometry_ghost_pub" pkg='monitors' type="setpoint_ghost_pub" output="screen">
 </node>	
+</group>
 
 <!--
 ============================================================================
