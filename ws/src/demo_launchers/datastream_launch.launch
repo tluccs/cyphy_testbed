@@ -55,5 +55,5 @@ Bag recording
 - /vrpn_client_node/cf1/pose: This is the ground truth
 - /ghost_trajectory: This is the requested trajectory pose (simulated)
 -->
-<node pkg="rosbag" name="record" type="record" args="-O /tmp/cf1 /cf1/optitrack_odom /vrpn_client_node/cf1/pose /cf1/external_pose_rpy"/>
+<node pkg="rosbag" name="record" type="record" args="-O /tmp/cf1 /cf1/external_odom /vrpn_client_node/cf1/pose /cf1/external_pose_rpy"/>
 </launch>
