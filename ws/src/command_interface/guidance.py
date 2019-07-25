@@ -9,11 +9,15 @@ import rospy
 import time
 from threading import Thread
 from tf.transformations import euler_from_matrix
+from nav_msgs.msg import Odometry
 from testbed_msgs.msg import ControlSetpoint 
 from testbed_srvs.srv import GenImpTrajectory, GenGoToTrajectory
 
 import trjgen.class_pwpoly as pw
 import trjgen.class_trajectory as trj
+
+def odom_callback():
+    return
 
 def handle_genImpTrj(req):
     start_pos = req.start_position 
@@ -158,24 +162,24 @@ def rep_trajectory(traj, start_position, timeSpan, freq):
         # Evaluate the trajectory
         (X, Y, Z, W, R) = traj.eval(curr_time - start_time, [0, 1, 2])
 
-        msg.px = X[0] 
-        msg.py = Y[0] 
-        msg.pz = Z[0] 
+        msg.p.x = X[0] 
+        msg.p.y = Y[0] 
+        msg.p.z = Z[0] 
 
-        msg.vx = X[1] 
-        msg.vy = Y[1]
-        msg.vz = Z[1]
+        msg.v.x = X[1] 
+        msg.v.y = Y[1]
+        msg.v.z = Z[1]
 
-        msg.accx = X[2]
-        msg.accy = Y[2]
-        msg.accz = Z[2]
+        msg.a.x = X[2]
+        msg.a.y = Y[2]
+        msg.a.z = Z[2]
 
         # Conver the Rotation matrix to euler angles
         (roll, pitch, yaw) = euler_from_matrix(R)
 
-        msg.r = roll
-        msg.p = pitch
-        msg.y = yaw
+        msg.rpy.x = roll
+        msg.rpy.y = pitch
+        msg.rpy.z = yaw
 
         # Pubblish the evaluated trajectory
         ctrl_setpoint_pub.publish(msg)
@@ -197,6 +201,9 @@ if __name__ == '__main__':
 
     service_imp = rospy.Service('gen_ImpTrajectory', GenImpTrajectory, handle_genImpTrj)
     service_goto = rospy.Service('gen_goToTrajectory', GenGoToTrajectory, handle_genGotoTrj)
+
+    # Subscribe to vehicle state update
+    rospy.Subscriber("/external_odom", Odometry, odom_callback)
 
     # Setpoint Publisher
     ctrl_setpoint_pub = rospy.Publisher('/' + commander_id + '/' + target_frame + '/' + 'setpoint', ControlSetpoint, queue_size=10)
