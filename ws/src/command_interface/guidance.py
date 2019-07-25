@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# This is a one shot planner node.
+# This is the guidance node 
 # It genereates the trajectory to reach a target point using 
 # polynomials.
 import numpy as np
@@ -9,14 +9,11 @@ import rospy
 import time
 from threading import Thread
 from tf.transformations import euler_from_matrix
-from testbed_msgs.msg import Setpoint 
+from testbed_msgs.msg import ControlSetpoint 
 from testbed_srvs.srv import GenImpTrajectory, GenGoToTrajectory
 
 import trjgen.class_pwpoly as pw
 import trjgen.class_trajectory as trj
-
-# Setpoint Publisher
-ghost_pub = rospy.Publisher('setpoint', Setpoint, queue_size=10)
 
 def handle_genImpTrj(req):
     start_pos = req.start_position 
@@ -146,13 +143,15 @@ def handle_genGotoTrj():
 
 
 def rep_trajectory(traj, start_position, timeSpan, freq):
+    global ctrl_setpoint_pub
+
     r = rospy.Rate(freq)
 
     start_time = rospy.get_time() 
     curr_time = start_time
     end_time = start_time + timeSpan
 
-    msg = Setpoint()
+    msg = ControlSetpoint()
 
     # Publishing Loop
     while (curr_time < end_time):
@@ -179,7 +178,7 @@ def rep_trajectory(traj, start_position, timeSpan, freq):
         msg.y = yaw
 
         # Pubblish the evaluated trajectory
-        ghost_pub.publish(msg)
+        ctrl_setpoint_pub.publish(msg)
 
         # Wait the next loop
         r.sleep()
@@ -188,13 +187,19 @@ def rep_trajectory(traj, start_position, timeSpan, freq):
 
 
 if __name__ == '__main__':
-    rospy.init_node('Trajectory_Generator_Node')
+    rospy.init_node('Guidance_Node')
 
     vehicle_mass = rospy.get_param('~vehicle_mass', 0.032)
     n_points = rospy.get_param('traject_points', 100) 
 
-    s = rospy.Service('gen_ImpTrajectory', GenImpTrajectory, handle_genImpTrj)
-    s = rospy.Service('gen_goToTrajectory', GenGoToTrajectory, handle_genGotoTrj) 
+    commander_id = rospy.get_param('~command_id', 'cm1')
+    target_frame = rospy.get_param('~target_frame', 'cf1')
+
+    service_imp = rospy.Service('gen_ImpTrajectory', GenImpTrajectory, handle_genImpTrj)
+    service_goto = rospy.Service('gen_goToTrajectory', GenGoToTrajectory, handle_genGotoTrj)
+
+    # Setpoint Publisher
+    ctrl_setpoint_pub = rospy.Publisher('/' + commander_id + '/' + target_frame + '/' + 'setpoint', ControlSetpoint, queue_size=10)
 
     rospy.spin()
 
