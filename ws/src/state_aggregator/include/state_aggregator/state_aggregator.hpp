@@ -46,8 +46,6 @@ class StateAggregator {
                 bool LoadParameters(const ros::NodeHandle& n);
                 bool RegisterCallbacks(const ros::NodeHandle& n);
 
-                // K matrix and reference state/control (to fight gravity). These are
-
                 // Remember last time we got a state callback.
                 double last_state_time_;
 

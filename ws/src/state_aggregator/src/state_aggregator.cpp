@@ -142,7 +142,6 @@ bool StateAggregator::LoadParameters(const ros::NodeHandle& n) {
                 ROS_INFO("No param 'time_delay' found!"); 
                 ROS_INFO("Setting default parameter %s = %f", 
                                 "time_delay", t_delay_);
-
         }
         return true;
 }
