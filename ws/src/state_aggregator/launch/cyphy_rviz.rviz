@@ -89,7 +89,7 @@ Visualization Manager:
         Shaft Length: 1
         Shaft Radius: 0.05000000074505806
         Value: Axes
-      Topic: /cf1/optitrack_odom
+      Topic: /cf1/external_odom
       Unreliable: false
       Value: true
     - Angle Tolerance: 0.10000000149011612

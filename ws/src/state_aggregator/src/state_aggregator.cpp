@@ -89,7 +89,7 @@ bool StateAggregator::Initialize(const ros::NodeHandle& n) {
         pose_rpy_pub_ =
                 nl.advertise<geometry_msgs::Vector3Stamped> ("external_pose_rpy", 3);
         odometry_pub_ =
-                nl.advertise<nav_msgs::Odometry> ("optitrack_odom", 3); 
+                nl.advertise<nav_msgs::Odometry> ("external_odom", 3); 
 
 
         // Initialize the header refereces of odometry messages
