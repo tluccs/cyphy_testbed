@@ -4,3 +4,4 @@ ws/src/CMakeLists.txt
 *.swp
 *.vimrc
 .catkin_workspace
+*.pyc
