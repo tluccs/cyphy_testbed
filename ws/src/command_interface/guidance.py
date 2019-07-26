@@ -16,7 +16,13 @@ from testbed_srvs.srv import GenImpTrajectory, GenGoToTrajectory
 import trjgen.class_pwpoly as pw
 import trjgen.class_trajectory as trj
 
-def odom_callback():
+current_odometry = Odometry()
+
+def odom_callback(odometry_msg):
+    global current_odometry 
+
+
+    current_odometry = odometry_msg
     return
 
 def handle_genImpTrj(req):
@@ -156,6 +162,8 @@ def rep_trajectory(traj, start_position, timeSpan, freq):
     end_time = start_time + timeSpan
 
     msg = ControlSetpoint()
+    rtime = rospy.get_rostime()
+    msg.header.stamp = rtime
 
     # Publishing Loop
     while (curr_time < end_time):
@@ -180,7 +188,7 @@ def rep_trajectory(traj, start_position, timeSpan, freq):
         msg.rpy.x = roll
         msg.rpy.y = pitch
         msg.rpy.z = yaw
-
+ 
         # Pubblish the evaluated trajectory
         ctrl_setpoint_pub.publish(msg)
 
@@ -203,7 +211,7 @@ if __name__ == '__main__':
     service_goto = rospy.Service('gen_goToTrajectory', GenGoToTrajectory, handle_genGotoTrj)
 
     # Subscribe to vehicle state update
-    rospy.Subscriber("/external_odom", Odometry, odom_callback)
+    rospy.Subscriber("/" + target_frame + "/external_odom", Odometry, odom_callback)
 
     # Setpoint Publisher
     #ctrl_setpoint_pub = rospy.Publisher('/' + commander_id + '/' + target_frame + '/' + 'setpoint', ControlSetpoint, queue_size=10)
