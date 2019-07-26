@@ -192,14 +192,15 @@ if __name__ == '__main__':
     vehicle_mass = rospy.get_param('~vehicle_mass', 0.032)
     n_points = rospy.get_param('traject_points', 100) 
 
-    commander_id = rospy.get_param('~command_id', 'cm1')
-    target_frame = rospy.get_param('~target_frame', 'cf1')
+    #commander_id = rospy.get_param('~command_id', 'cm1')
+    #target_frame = rospy.get_param('~target_frame', 'cf1')
 
     service_imp = rospy.Service('gen_ImpTrajectory', GenImpTrajectory, handle_genImpTrj)
     service_goto = rospy.Service('gen_goToTrajectory', GenGoToTrajectory, handle_genGotoTrj)
 
     # Setpoint Publisher
-    ctrl_setpoint_pub = rospy.Publisher('/' + commander_id + '/' + target_frame + '/' + 'setpoint', ControlSetpoint, queue_size=10)
+    #ctrl_setpoint_pub = rospy.Publisher('/' + commander_id + '/' + target_frame + '/' + 'setpoint', ControlSetpoint, queue_size=10)
+    ctrl_setpoint_pub = rospy.Publisher('setpoint', ControlSetpoint, queue_size=10)
 
     rospy.spin()
 

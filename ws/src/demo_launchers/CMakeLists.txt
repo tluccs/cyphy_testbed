@@ -106,7 +106,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES demo_launchers
-#  CATKIN_DEPENDS monitors roscpp rospy state_aggregator
+#  CATKIN_DEPENDS
 #  DEPENDS system_lib
 )
 

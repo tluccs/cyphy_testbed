@@ -15,6 +15,15 @@
 	    <param name="target_frame" value="$(arg tg_frame)" type='str' />
 	    <param name="command_id" value="$(arg commander_id)" type='str' />
     </node>
+
+		<!--
+    ============================================================================
+    Contoller Node
+    -->
+		<include file="$(find demo_launchers)/launch/ext_control.launch">
+			<arg name="setpoint_topic" value="/cm1/cf1/setpoint" />
+		</include>
+
 </group>
 
 <group ns="$(arg tg_frame)">
