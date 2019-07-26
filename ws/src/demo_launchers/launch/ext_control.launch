@@ -1,0 +1,86 @@
+<?xml version="1.0"?>
+
+<launch>
+  <!-- Topics. -->
+  <arg name="setpoint_topic" default="setpoint" />
+  <arg name="state_topic" default="state" />
+  <arg name="control_topic" default="control" />
+
+  <!-- Control parameters. -->
+  <arg name="g_vehicleMass" value="0.032" />
+  <arg name="massThrust" value="132000" />
+
+  <arg name="kp_xy" value="0.4" />
+  <arg name="kd_xy" value="0.2" />
+  <arg name="ki_xy" value="0.05" />
+  <arg name="i_range_xy" value="2.0" />
+
+  <arg name="kp_z" value="1.25" />
+  <arg name="kd_z" value="0.4" />
+  <arg name="ki_z" value="0.05" />
+  <arg name="i_range_z" value="0.4" />
+  
+  <arg name="kR_xy" value="70000" />
+  <arg name="kw_xy" value="20000" />
+  <arg name="ki_m_xy" value="0.0" />
+  <arg name="i_range_m_xy" value="1.0" />
+  
+  <arg name="kR_z" value="60000" />
+  <arg name="kw_z" value="12000" />
+  <arg name="ki_m_z" value="500" />
+  <arg name="i_range_m_z" value="1500" />
+  
+  <arg name="kd_omega_rp" value="200" />
+  
+  <arg name="i_error_x" value="0" />
+  <arg name="i_error_y" value="0" />
+  <arg name="i_error_z" value="0" />
+  
+  <arg name="i_error_m_x" value="0" />
+  <arg name="i_error_m_y" value="0" />
+  <arg name="i_error_m_z" value="0" />
+
+  <!-- Mellinger controller. -->
+  <node name="mellinger_controller"
+        pkg="controller"
+        type="mellinger_controller_node"
+        output="screen">
+
+    <param name="g_vehicleMass" value="$(arg g_vehicleMass)" />
+    <param name="massThrust" value="$(arg massThrust)" />
+
+    <param name="kp_xy" value="$(arg kp_xy)" />
+    <param name="kd_xy" value="$(arg kd_xy)" />
+    <param name="ki_xy" value="$(arg ki_xy)" />
+    <param name="i_range_xy" value="$(arg i_range_xy)" />
+
+    <param name="kp_z" value="$(arg kp_z)" />
+    <param name="kd_z" value="$(arg kd_z)" />
+    <param name="ki_z" value="$(arg ki_z)" />
+    <param name="i_range_z" value="$(arg i_range_z)" />
+
+    <param name="kR_xy" value="$(arg kR_xy)" />
+    <param name="kw_xy" value="$(arg kw_xy)" />
+    <param name="ki_m_xy" value="$(arg ki_m_xy)" />
+    <param name="i_range_m_xy" value="$(arg i_range_m_xy)" />
+
+    <param name="kR_z" value="$(arg kR_z)" />
+    <param name="kw_z" value="$(arg kw_z)" />
+    <param name="ki_m_z" value="$(arg ki_m_z)" />
+    <param name="i_range_m_z" value="$(arg i_range_m_z)" />
+
+    <param name="kd_omega_rp" value="$(arg kd_omega_rp)" />
+    
+    <param name="i_error_x" value="$(arg i_error_x)" />
+    <param name="i_error_y" value="$(arg i_error_y)" />
+    <param name="i_error_z" value="$(arg i_error_z)" />
+    
+    <param name="i_error_m_x" value="$(arg i_error_m_x)" />
+    <param name="i_error_m_y" value="$(arg i_error_m_y)" />
+    <param name="i_error_m_z" value="$(arg i_error_m_z)" />
+    
+    <param name="topics/setpoint" value="$(arg setpoint_topic)" />
+    <param name="topics/state" value="$(arg state_topic)" />
+    <param name="topics/control" value="$(arg control_topic)" />
+  </node>
+</launch>
