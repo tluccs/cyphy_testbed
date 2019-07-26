@@ -89,7 +89,7 @@ bool StateAggregator::Initialize(const ros::NodeHandle& n) {
         pose_rpy_pub_ =
                 nl.advertise<geometry_msgs::Vector3Stamped> ("external_pose_rpy", 3);
         odometry_pub_ =
-                nl.advertise<nav_msgs::Odometry> ("optitrack_odom", 3); 
+                nl.advertise<nav_msgs::Odometry> ("external_odom", 3); 
 
 
         // Initialize the header refereces of odometry messages
@@ -142,7 +142,6 @@ bool StateAggregator::LoadParameters(const ros::NodeHandle& n) {
                 ROS_INFO("No param 'time_delay' found!"); 
                 ROS_INFO("Setting default parameter %s = %f", 
                                 "time_delay", t_delay_);
-
         }
         return true;
 }
