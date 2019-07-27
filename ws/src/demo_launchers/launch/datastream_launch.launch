@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+<launch>
+        <arg name="frame" default="cf1" />
+        <arg name="ip" default="192.168.1.198" />
+        <arg name="port" default="3883" />
+<!--
+============================================================================
+Run vrpn client
+This connects to the optitrack server and produces pose messages regarding 
+the CF.
+-->
+<node pkg="vrpn_client_ros" type="vrpn_client_node" name="vrpn_client_node" output="screen">
+        <rosparam subst_value="true">
+                server: $(arg ip)
+                port: $(arg port)
+                update_frequency: 360.0
+                frame_id: /world
+                child_frame_id: $(arg frame)
+                use_server_time: true
+                broadcast_tf: false
+                refresh_tracker_frequency: 1.0
+        </rosparam>
+</node>
+
+
+<!--
+===========================================================================
+Run the data aggregator node, which takes the information from external 
+sensors and provides an estimator of the drone state.
+-->
+<node name="aggregator" pkg="state_aggregator" type="state_aggregator" output="screen"> 
+        <param name="topic" value="/vrpn_client_node/cf1/pose" />
+        <param name="valpha" value="0.8" type='double' />
+        <param name="qdalpha" value="0.9" type='double' />
+	<param name="time_delay" value="0.0" type='double' />
+</node>
+
+
+
+<!--
+============================================================================
+Visualization with RVIZ 
+-->
+<node pkg="tf" type="static_transform_publisher" name="baselink_broadcaster" args="0 0 0 0 0 0 1 $(arg frame) /world 100" />
+<node pkg="rviz" type="rviz" name="rviz" args="-d $(find state_aggregator)/launch/cyphy_rviz.rviz" /> 
+
+<!--
+============================================================================
+Bag recording 
+
+- /cf1/pose: This is x,y,z,quat from the internal estimator 
+- /cf1/logAttRPY: This is the human readable attitude information
+- /vrpn_client_node/cf1/pose: This is the ground truth
+- /ghost_trajectory: This is the requested trajectory pose (simulated)
+-->
+<node pkg="rosbag" name="record" type="record" args="-O /tmp/cf1_ext /cf1/external_odom /vrpn_client_node/cf1/pose /cf1/external_pose_rpy"/>
+</launch>
