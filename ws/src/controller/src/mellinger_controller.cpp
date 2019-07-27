@@ -2,6 +2,7 @@
 #include "mellinger_controller.h"
 #include <math.h>
 #include "math3d.h"
+#include <stdio.h>
 
 #define GRAVITY_MAGNITUDE (9.81f)
 
@@ -176,10 +177,9 @@ void MellingerController::StateCallback(
   vel_(1) = msg->twist.twist.linear.y;
   vel_(2) = msg->twist.twist.linear.z;
 
-  quat_.x() = msg->pose.pose.orientation.x;
-  quat_.y() = msg->pose.pose.orientation.y;
-  quat_.z() = msg->pose.pose.orientation.z;
+  quat_.vec() = Vector3d (msg->pose.pose.orientation.x, msg->pose.pose.orientation.y, msg->pose.pose.orientation.z);
   quat_.w() = msg->pose.pose.orientation.w;
+  quat_.normalize();
 
   //r_pos_(0) = msg->state.roll;
   //r_pos_(1) = msg->state.pitch;
@@ -188,8 +188,12 @@ void MellingerController::StateCallback(
   //r_vel_(0) = msg->state.roll_dot;
   //r_vel_(1) = msg->state.pitch_dot;
   //r_vel_(2) = msg->state.yaw_dot;
+  //std::cout << "quaternion: " << quat_.vec() << ", " << quat_.w() << std::endl;
 
   float dt = ros::Time::now().toSec() - last_state_time_; // (float)(1.0f/ATTITUDE_RATE);
+  last_state_time_ = ros::Time::now().toSec();
+
+  //std::cout << "dt: " << dt << std::endl;
 
   Vector3d p_error = sp_pos_ - pos_;
   Vector3d v_error = sp_vel_ - vel_;
@@ -211,6 +215,8 @@ void MellingerController::StateCallback(
   target_thrust(1) = g_vehicleMass * sp_acc_(1)                      + kp_xy * p_error(1) + kd_xy * v_error(1) + ki_xy * i_error_y;
   target_thrust(2) = g_vehicleMass * (sp_acc_(2) + GRAVITY_MAGNITUDE) + kp_z  * p_error(2) + kd_z  * v_error(2) + ki_z  * i_error_z;
 
+  //std::cout << "target_thrust: " << target_thrust << std::endl;
+
   // Move YAW angle setpoint
   double desiredYaw = sp_yaw_;
 
@@ -218,6 +224,8 @@ void MellingerController::StateCallback(
   //Eigen::Quaterniond q;
   Matrix3d R = quat_.toRotationMatrix();
   Vector3d z_axis = R.col(2);
+
+  //std::cout << "z_axis: " << z_axis << std::endl;
 
   // Current thrust [F]
   double current_thrust = target_thrust.dot(z_axis);
@@ -241,11 +249,13 @@ void MellingerController::StateCallback(
   Rdes.col(1) = y_axis_desired;
   Rdes.col(2) = z_axis_desired;
 
-  testbed_msgs::Control control_msg;
-  control_msg.roll = std::atan2(Rdes(2,1),Rdes(2,2));
-  control_msg.pitch = -std::asin(Rdes(2,0));
-  control_msg.yaw_dot = std::atan2(Rdes(1,0),Rdes(0,0));
-  control_msg.thrust = current_thrust;
+  //std::cout << "Rdes: " << Rdes << std::endl;
+
+  testbed_msgs::ControlStamped control_msg;
+  control_msg.control.roll = std::atan2(Rdes(2,1),Rdes(2,2));
+  control_msg.control.pitch = -std::asin(Rdes(2,0));
+  control_msg.control.yaw_dot = std::atan2(Rdes(1,0),Rdes(0,0));
+  control_msg.control.thrust = current_thrust;
 
   control_pub_.publish(control_msg);
 }

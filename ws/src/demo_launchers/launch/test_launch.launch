@@ -11,15 +11,15 @@
     ============================================================================
     Trajectory Generation Service
     -->
-    <node name="Guidance_Node" pkg="command_interface" type="guidance.py" output="screen"> 
-    </node>
-
+    <!--<node name="Guidance_Node" pkg="command_interface" type="guidance.py" output="screen"> 
+    </node> -->
+ 
 		<!--
     ============================================================================
     Contoller Node
     -->
 		<include file="$(find demo_launchers)/launch/ext_control.launch">
-			<arg name="setpoint_topic" value="/cm1/setpoint" />
+			<arg name="setpoint_topic" value="/setpoint" />
 			<arg name="state_topic" value="/cf1/external_odom" />
 			<arg name="control_topic" value="/cm1/control" />
 		</include>

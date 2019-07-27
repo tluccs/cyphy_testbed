@@ -2,11 +2,7 @@
 <package>
 	<name>demo_launchers</name>
 	<version>0.0.1</version>
-<<<<<<< HEAD
 	<description>Demos</description>
-=======
-	<description> Launcher files for the demos </description>
->>>>>>> origin/luigi_wip
 
 	<maintainer email="lpannocchi@g.ucla.edu">Luigi Pannocchi</maintainer>
 
