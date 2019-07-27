@@ -16,7 +16,12 @@ from testbed_srvs.srv import GenImpTrajectory, GenGoToTrajectory
 import trjgen.class_pwpoly as pw
 import trjgen.class_trajectory as trj
 
-def odom_callback():
+current_odometry = Odometry()
+
+def odom_callback(odometry_msg):
+    global current_odometry 
+
+    current_odometry = odometry_msg
     return
 
 def handle_genImpTrj(req):
@@ -88,7 +93,7 @@ def handle_genImpTrj(req):
     t = Thread(target=rep_trajectory, args=(my_traj,start_pos, Tmax, frequency)).start()
 
 
-def handle_genGotoTrj():
+def handle_genGotoTrj(req):
     tg_p = req.target_p
     tg_v = req.target_v
     tg_a = req.target_a
@@ -101,29 +106,25 @@ def handle_genGotoTrj():
     ndeg = 7
     nconstr = 4
 
-    rospy.loginfo("On Target in " + str(t_impact) + " sec!")
-    rospy.loginfo("Target = [" + str(tg_x) + " " + str(tg_y) + 
-            " " + str(tg_z) + "]")
-
     X = np.array([
         [ 0.0,    tg_p[0]],
         [ 0.0,    tg_v[0]],
         [ 0.0,    tg_a[0]],
-        [ 0.0,    np.nan],
+        [ 0.0,    0.0],
         ])
 
     Y = np.array([
         [ 0.0,    tg_p[1]],
         [ 0.0,    tg_v[1]],
         [ 0.0,    tg_a[1]],
-        [ 0.0,    np.nan],
+        [ 0.0,    0.0],
         ])
     
     Z = np.array([
         [ 0.0,    tg_p[2]],
         [ 0.0,    tg_v[2]],
         [ 0.0,    tg_a[2]],
-        [ 0.0,    np.nan],
+        [ 0.0,    0.0],
         ])
 
     W = np.array([
@@ -142,8 +143,10 @@ def handle_genGotoTrj():
 
     my_traj = trj.Trajectory(ppx, ppy, ppz, ppw)
 
-    start_pos = [0.0, 0.0, 0.0]
-    rep_trajectory(my_traj, start_pos, Tmax, frequency)
+    start_pos = [current_odometry.pose.pose.position.x, 
+            current_odometry.pose.pose.position.y, 
+            current_odometry.pose.pose.position.z]
+    rep_trajectory(my_traj, start_pos, t_impact, frequency)
 
 
 def rep_trajectory(traj, start_position, timeSpan, freq):
@@ -156,6 +159,8 @@ def rep_trajectory(traj, start_position, timeSpan, freq):
     end_time = start_time + timeSpan
 
     msg = ControlSetpoint()
+    rtime = rospy.get_rostime()
+    msg.header.stamp = rtime
 
     # Publishing Loop
     while (curr_time < end_time):
@@ -180,7 +185,7 @@ def rep_trajectory(traj, start_position, timeSpan, freq):
         msg.rpy.x = roll
         msg.rpy.y = pitch
         msg.rpy.z = yaw
-
+ 
         # Pubblish the evaluated trajectory
         ctrl_setpoint_pub.publish(msg)
 
@@ -196,18 +201,18 @@ if __name__ == '__main__':
     vehicle_mass = rospy.get_param('~vehicle_mass', 0.032)
     n_points = rospy.get_param('traject_points', 100) 
 
-    #commander_id = rospy.get_param('~command_id', 'cm1')
-    #target_frame = rospy.get_param('~target_frame', 'cf1')
+    commander_id = rospy.get_param('~command_id', 'cm1')
+    target_frame = rospy.get_param('~target_frame', 'cf1')
 
     service_imp = rospy.Service('gen_ImpTrajectory', GenImpTrajectory, handle_genImpTrj)
     service_goto = rospy.Service('gen_goToTrajectory', GenGoToTrajectory, handle_genGotoTrj)
 
     # Subscribe to vehicle state update
-    rospy.Subscriber("/external_odom", Odometry, odom_callback)
+    rospy.Subscriber("/" + target_frame + "/external_odom", Odometry, odom_callback)
 
     # Setpoint Publisher
-    #ctrl_setpoint_pub = rospy.Publisher('/' + commander_id + '/' + target_frame + '/' + 'setpoint', ControlSetpoint, queue_size=10)
-    ctrl_setpoint_pub = rospy.Publisher('setpoint', ControlSetpoint, queue_size=10)
+    ctrl_setpoint_pub = rospy.Publisher('/' + commander_id + '/' + target_frame + '/' + 'setpoint', ControlSetpoint, queue_size=10)
+    #ctrl_setpoint_pub = rospy.Publisher('setpoint', ControlSetpoint, queue_size=10)
 
     rospy.spin()
 
