@@ -1,0 +1,79 @@
+<?xml version="1.0"?>
+<launch>
+        <arg name="uri" default="radio://0/100/2M/E7E7E7E7E7" />
+        <arg name="frame" default="cf1" />
+        <include file="$(find crazyflie_driver)/launch/crazyflie_server.launch">
+        </include>
+
+
+<!-- GROUP CF1
+============================================================================
+============================================================================
+============================================================================
+============================================================================
+-->
+<group ns="cf1">
+
+============================================================================
+Start the server process that connects the CF to the ROS system
+<node pkg="crazyflie_driver" type="crazyflie_add" name="crazyflie_add" output="screen">
+        <param name="uri" value="$(arg uri)" />
+        <param name="tf_prefix" value="cf1" />
+        <param name="enable_logging" value="True" />
+        <param name="enable_logging_imu" value="False" />
+        <param name="enable_logging_temperature" value="False" />
+        <param name="enable_logging_magnetic_field" value="False" />
+        <param name="enable_logging_pressure" value="False" />
+        <param name="enable_logging_battery" value="False" />
+        <param name="enable_logging_packets" value="False" />
+        <param name="enable_logging_pose" value="True" /> 
+        <rosparam>
+                genericLogTopics: ["logEstAttRPY"]
+                genericLogTopicFrequencies: [10]
+                genericLogTopic_logEstAttRPY_Variables: ["stateEstimate.roll", "stateEstimate.pitch", "stateEstimate.yaw"]
+        </rosparam>
+</node>
+
+<!--
+Set up the vehicle, selecting the Commander Level, Estimation Algorithm and 
+Control Algorithm
+Estimator = {CMP | EKF | USC}
+Controller = { PID | Mellinger }
+-->
+<node name="setup_vehicle" pkg="crazyflie_demo" type="setup_vehicle.py" output="screen">
+        <param name="cf" value="$(arg frame)" />
+        <param name="comm_lev" value='1' type='int' />
+        <param name="Estimator" value="EKF" type='str' />
+        <param name="ResEstimator" value='true' type='bool' />
+        <param name="Controller" value="Mellinger" type='str' />
+</node>
+
+
+
+<!--
+========================================================================
+These nodes are passive, they listen to topics and they publish on 
+odometry topics, which can be represented in rviz, or in other 
+visualization tool
+
+Publish the Estimated odometry 
+-->
+<node name="Est_Odometry" pkg="crazyflie_demo" type="publish_kalman_odometry.py" output="screen"> 
+</node>
+
+</group>
+
+
+<!--
+============================================================================
+Bag recording 
+
+- /cf1/pose: This is x,y,z,quat from the internal estimator 
+- /cf1/logAttRPY: This is the human readable attitude information
+- /vrpn_client_node/cf1/pose: This is the ground truth
+- /ghost_trajectory: This is the requested trajectory pose (simulated)
+-->
+
+<node pkg="rosbag" name="record" type="record" args="-O /tmp/cf1_est /cf1/pose /cf1/logEstAttRPY "/>
+
+</launch>
