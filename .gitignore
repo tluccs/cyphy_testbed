@@ -5,3 +5,4 @@ ws/src/CMakeLists.txt
 *.vimrc
 .catkin_workspace
 *.pyc
+rosnet.config
