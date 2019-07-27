@@ -208,11 +208,10 @@ if __name__ == '__main__':
     service_goto = rospy.Service('gen_goToTrajectory', GenGoToTrajectory, handle_genGotoTrj)
 
     # Subscribe to vehicle state update
-    rospy.Subscriber("/" + target_frame + "/external_odom", Odometry, odom_callback)
+    rospy.Subscriber("external_odom", Odometry, odom_callback)
 
     # Setpoint Publisher
-    ctrl_setpoint_pub = rospy.Publisher('/' + commander_id + '/' + target_frame + '/' + 'setpoint', ControlSetpoint, queue_size=10)
-    #ctrl_setpoint_pub = rospy.Publisher('setpoint', ControlSetpoint, queue_size=10)
+    ctrl_setpoint_pub = rospy.Publisher('setpoint', ControlSetpoint, queue_size=10)
 
     rospy.spin()
 
