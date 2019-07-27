@@ -32,10 +32,24 @@ add_executable(mellinger_controller_node
 	src/mellinger_controller.cpp
 )
 
+add_executable(cmd_vel_converter_node 
+	exec/cmd_vel_converter_node.cpp 
+	src/cmd_vel_converter.cpp
+)
+
 add_dependencies(mellinger_controller_node crazyflie_demo_generate_messages_cpp)
+
+add_dependencies(cmd_vel_converter_node cmd_vel_converter_generate_messages_cpp)
 
 target_link_libraries(
 	mellinger_controller_node
+	Eigen3::Eigen 
+	${catkin_LIBRARIES}
+)
+
+
+target_link_libraries(
+	cmd_vel_converter_node
 	Eigen3::Eigen 
 	${catkin_LIBRARIES}
 )

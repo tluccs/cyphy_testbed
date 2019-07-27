@@ -20,7 +20,19 @@
     -->
 		<include file="$(find demo_launchers)/launch/ext_control.launch">
 			<arg name="setpoint_topic" value="/cm1/setpoint" />
+			<arg name="state_topic" value="/cf1/external_odom" />
+			<arg name="control_topic" value="/cm1/control" />
 		</include>
+
+		<!-- Converter for custom command velocity messages. -->
+		<node name="cmd_vel_converter"
+        pkg="controller"
+        type="cmd_vel_converter_node"
+        output="screen">
+
+    <param name="topics/control" value="/cm1/control" />
+    <param name="topics/cmd_vel" value="/cf1/cmd_vel" />
+		</node>
 
 </group>
 
@@ -35,6 +47,32 @@
 		<param name="command_id" value="$(arg commander_id)" type='str' />
 	</node>	
 </group>
+
+<arg name="uri" default="radio://0/100/2M/E7E7E7E7E7" />
+<arg name="frame" default="cf1" />
+<arg name="ip" default="192.168.1.198" />
+<arg name="port" default="3883" />
+
+<include file="$(find crazyflie_driver)/launch/crazyflie_server.launch">
+</include>
+
+<node pkg="crazyflie_driver" type="crazyflie_add" name="crazyflie_add" output="screen">
+        <param name="uri" value="$(arg uri)" />
+        <param name="tf_prefix" value="cf1" />
+        <param name="enable_logging" value="True" />
+        <param name="enable_logging_imu" value="False" />
+        <param name="enable_logging_temperature" value="False" />
+        <param name="enable_logging_magnetic_field" value="False" />
+        <param name="enable_logging_pressure" value="False" />
+        <param name="enable_logging_battery" value="False" />
+        <param name="enable_logging_packets" value="False" />
+        <param name="enable_logging_pose" value="True" /> 
+        <rosparam>
+                genericLogTopics: ["logEstAttRPY"]
+                genericLogTopicFrequencies: [10]
+                genericLogTopic_logEstAttRPY_Variables: ["stateEstimate.roll", "stateEstimate.pitch", "stateEstimate.yaw"]
+        </rosparam>
+</node>
 
 <!--
 ============================================================================
