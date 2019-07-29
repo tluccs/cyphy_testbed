@@ -12,17 +12,15 @@
 #include <ros/ros.h>
 #include <string>
 #include <time.h>
-
+#include "Eigen/Dense"
 #include <tf/transform_broadcaster.h>
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/PoseStamped.h>
 
-#include "Eigen/Dense"
+#include <testbed_msgs/FullStateStamped.h>
+
 
 using namespace Eigen;
-
-
-
 
 // =================================================================
 // CLASS
@@ -56,13 +54,18 @@ class StateAggregator {
                 ros::Publisher pose_pub_;
                 ros::Publisher pose_rpy_pub_;
                 ros::Publisher odometry_pub_;
+                ros::Publisher fullstate_pub_;
                 tf::TransformBroadcaster ext_odom_broadcaster_;
 
                 ros::Subscriber inchannel1_; 
 
                 // Topics names
-                std::string state_topic_;
-                std::string control_topic_;
+                std::string vrpn_topic_;
+                std::string ext_position_topic_;
+                std::string ext_pose_topic_;
+                std::string ext_pose_rpy_topic_;
+                std::string ext_odom_topic_;
+                std::string fullstate_topic_;
 
                 // Initialized flag and name.
                 bool received_reference_;
@@ -76,6 +79,7 @@ class StateAggregator {
                 geometry_msgs::PointStamped ext_position_msg_;
                 nav_msgs::Odometry ext_odometry_msg_;
                 geometry_msgs::TransformStamped ext_odom_trans_;
+                testbed_msgs::FullStateStamped full_state_msg_;
 
                 // ===========================================================
                 // Helper variables

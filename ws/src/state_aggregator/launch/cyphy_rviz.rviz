@@ -157,7 +157,7 @@ Visualization Manager:
         Shaft Length: 1
         Shaft Radius: 0.05000000074505806
         Value: Axes
-      Topic: /cm1/cf1/ghost_vehicle_od
+      Topic: /cf1/ghost_odom
       Unreliable: false
       Value: true
   Enabled: true

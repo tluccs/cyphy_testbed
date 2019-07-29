@@ -4,6 +4,7 @@
 @author: rt-2pm2
 """
 import numpy as np
+import trjgen.trjgen_core as tj
 
 class Trajectory:
     """ 
@@ -63,4 +64,15 @@ class Trajectory:
             R[:, 2] = Zb 
 
         return (X, Y, Z, W, R)
+
+
+    def writeTofile(self, Dt, filename='./poly.csv'):
+        # Save the polynomial coefficients on file
+        x_coeff = self.px.getCoeffMat();
+        y_coeff = self.py.getCoeffMat();
+        z_coeff = self.pz.getCoeffMat();
+        w_coeff = self.py.getCoeffMat();
+
+        tj.pp2file(Dt, x_coeff, y_coeff, z_coeff, w_coeff, filename)
+
 

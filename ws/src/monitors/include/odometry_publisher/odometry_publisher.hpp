@@ -34,6 +34,10 @@ class OdometryPublisher {
                 ros::Publisher odom_pub_;
                 tf::TransformBroadcaster odom_broadcaster_; 
 
+                // Topics
+                std::string ghost_topic_;
+                std::string ctrlsetpoint_topic_;
+
                 // Odometry: TF 
                 geometry_msgs::TransformStamped odom_trans_;
                 // Odometry Topic
@@ -43,6 +47,7 @@ class OdometryPublisher {
                 std::string name_;
                 std::string cm_id_;
                 std::string tg_frame_id_;
+                
 
                 bool initialized_;
 };
