@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-        <arg name="frame" default="cf1" />
+        <arg name="vehicle_frame" default="cf1" />
         <arg name="ip" default="192.168.1.198" />
         <arg name="port" default="3883" />
 <!--
@@ -15,13 +15,16 @@ the CF.
                 port: $(arg port)
                 update_frequency: 360.0
                 frame_id: /world
-                child_frame_id: $(arg frame)
+                child_frame_id: $(arg vehicle_frame)
                 use_server_time: true
                 broadcast_tf: false
                 refresh_tracker_frequency: 1.0
         </rosparam>
 </node>
 
+
+<!-- VEHICLE 1 -->
+<group ns="$(arg vehicle_frame)">
 
 <!--
 ===========================================================================
@@ -31,25 +34,25 @@ sensors and provides an estimator of the drone state.
 <node pkg="state_aggregator" name="aggregator" type="state_aggregator" 
         output="screen"> 
         <!-- Topic parameters -->
-        <param name="vrpn_topic" value="/vrpn_client_node/cf1/pose" />
-        <param name="ext_position_topic" value="/cf1/external_position" />
-        <param name="ext_pose_topic" value="/cf1/external_pose" />
-        <param name="ext_pose_rpy_topic" value="/cf1/external_pose_rpy" />
-        <param name="ext_odom_topic" value="/cf1/external_odom" />
-        <param name="output_fullstate_topic" value="/cf1/state" />
+        <param name="in_vrpn_topic" value="/vrpn_client_node/cf1/pose" />
+        <param name="out_ext_position_topic" value="external_position" />
+        <param name="out_ext_pose_topic" value="external_pose" />
+        <param name="out_ext_pose_rpy_topic" value="external_pose_rpy" />
+        <param name="out_ext_odom_topic" value="external_odom" />
+        <param name="out_fullstate_topic" value="state" />
 
         <param name="valpha" value="0.8" type='double' />
         <param name="qdalpha" value="0.9" type='double' />
     	<param name="time_delay" value="0.0" type='double' />
 </node>
-
+</group>
 
 
 <!--
 ============================================================================
 Visualization with RVIZ 
 -->
-<node pkg="tf" type="static_transform_publisher" name="baselink_broadcaster" args="0 0 0 0 0 0 1 $(arg frame) /world 100" />
+<node pkg="tf" type="static_transform_publisher" name="baselink_broadcaster" args="0 0 0 0 0 0 1 $(arg vehicle_frame) /world 100" />
 <node pkg="rviz" type="rviz" name="rviz" args="-d $(find state_aggregator)/launch/cyphy_rviz.rviz" /> 
 
 <!--
