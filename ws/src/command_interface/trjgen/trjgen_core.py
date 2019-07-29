@@ -188,6 +188,7 @@ def pp2file(Dt, polysX, polysY, polysZ, polysW, filename):
 
     f.close()
 
+    print("Polynomial coefficients wrote to file: " + filename)
 
 
 ######################################################################
