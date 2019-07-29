@@ -31,9 +31,8 @@ bool OdometryPublisher::Initialize(const ros::NodeHandle& n) {
         }
 
         // Advertise topics
-        std::string out_topic = "ghost_vehicle_od";
-        ROS_INFO("Node %s: Publishing to %s", name_.c_str(), out_topic.c_str());
-        odom_pub_ = nh.advertise<nav_msgs::Odometry> (out_topic, 20);
+        ROS_INFO("Node %s: Publishing to %s", name_.c_str(), ghost_topic_.c_str());
+        odom_pub_ = nh.advertise<nav_msgs::Odometry> (ghost_topic_, 20);
 
 
         // Initialize the header part of the odometry TF packet 
@@ -50,10 +49,13 @@ bool OdometryPublisher::Initialize(const ros::NodeHandle& n) {
 }
 
 bool OdometryPublisher::LoadParameters(const ros::NodeHandle& n) {
-        ros::NodeHandle nh(n);
+        ros::NodeHandle nh("~");
 
         nh.param<std::string>("commander_id", cm_id_, "cm1");
         nh.param<std::string>("tg_frame_id", tg_frame_id_, "cf1");
+
+        nh.param<std::string>("out_ghost_topic", ghost_topic_, "ghost");
+        nh.param<std::string>("controlsetpoint_topic", ctrlsetpoint_topic_, "cf1/setpoint");
 
         ROS_INFO("Commander ID: %s", cm_id_.c_str());
         ROS_INFO("Target Frame: %s", tg_frame_id_.c_str());
@@ -63,9 +65,9 @@ bool OdometryPublisher::LoadParameters(const ros::NodeHandle& n) {
 
 bool OdometryPublisher::RegisterCallbacks(const ros::NodeHandle& n) {
         ros::NodeHandle nh(n);
-        std::string topic ="setpoint";
-        ROS_INFO("Node %s: Subscribing to %s", name_.c_str(), topic.c_str());
-        inchannel1_ = nh.subscribe(topic, 10, &OdometryPublisher::callback, this);	
+        ROS_INFO("Node %s: Subscribing to %s", name_.c_str(), ghost_topic_.c_str());
+        inchannel1_ = nh.subscribe(ctrlsetpoint_topic_, 10, 
+                        &OdometryPublisher::callback, this);	
 
         return true;
 }

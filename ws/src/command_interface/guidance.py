@@ -20,12 +20,13 @@ current_odometry = Odometry()
 
 def odom_callback(odometry_msg):
     global current_odometry 
-
     current_odometry = odometry_msg
     return
 
 def handle_genImpTrj(req):
     start_pos = req.start_position 
+
+    
     tg = req.target 
     t_impact = req.tg_time
      
@@ -90,6 +91,10 @@ def handle_genImpTrj(req):
 
     my_traj = trj.Trajectory(ppx, ppy, ppz, ppw)
 
+    start_pos = [current_odometry.pose.pose.position.x, 
+            current_odometry.pose.pose.position.y, 
+            current_odometry.pose.pose.position.z]
+
     t = Thread(target=rep_trajectory, args=(my_traj,start_pos, Tmax, frequency)).start()
 
 
@@ -146,6 +151,7 @@ def handle_genGotoTrj(req):
     start_pos = [current_odometry.pose.pose.position.x, 
             current_odometry.pose.pose.position.y, 
             current_odometry.pose.pose.position.z]
+
     rep_trajectory(my_traj, start_pos, t_impact, frequency)
 
 
@@ -167,9 +173,9 @@ def rep_trajectory(traj, start_position, timeSpan, freq):
         # Evaluate the trajectory
         (X, Y, Z, W, R) = traj.eval(curr_time - start_time, [0, 1, 2])
 
-        msg.p.x = X[0] 
-        msg.p.y = Y[0] 
-        msg.p.z = Z[0] 
+        msg.p.x = X[0] + start_position[0]
+        msg.p.y = Y[0] + start_position[1]
+        msg.p.z = Z[0] + start_position[2] 
 
         msg.v.x = X[1] 
         msg.v.y = Y[1]
@@ -203,15 +209,17 @@ if __name__ == '__main__':
 
     commander_id = rospy.get_param('~command_id', 'cm1')
     target_frame = rospy.get_param('~target_frame', 'cf1')
+    
+    tg_odom_topic_ = rospy.get_param('target_odometry_topic', '/cf1/external_odom')
 
     service_imp = rospy.Service('gen_ImpTrajectory', GenImpTrajectory, handle_genImpTrj)
     service_goto = rospy.Service('gen_goToTrajectory', GenGoToTrajectory, handle_genGotoTrj)
 
     # Subscribe to vehicle state update
-    rospy.Subscriber("external_odom", Odometry, odom_callback)
+    rospy.Subscriber(tg_odom_topic_, Odometry, odom_callback)
 
     # Setpoint Publisher
-    ctrl_setpoint_pub = rospy.Publisher('setpoint', ControlSetpoint, queue_size=10)
+    ctrl_setpoint_pub = rospy.Publisher(target_frame +'/setpoint', ControlSetpoint, queue_size=10)
 
     rospy.spin()
 

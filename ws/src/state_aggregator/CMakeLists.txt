@@ -8,12 +8,13 @@ find_package(
 	roscpp 
 	tf 
 	std_msgs
+    testbed_msgs
 	)
 find_package (Eigen3 REQUIRED NO_MODULE)
 
 catkin_package(
 	INCLUDE_DIRS include/ # The package contains header files
-	CATKIN_DEPENDS roscpp tf std_msgs
+	CATKIN_DEPENDS roscpp tf std_msgs testbed_msgs
 	)
 
 # Since we use eigen

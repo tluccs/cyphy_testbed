@@ -83,13 +83,15 @@ bool StateAggregator::Initialize(const ros::NodeHandle& n) {
 
         // Advertise topics
         ext_pos_pub_ = 
-                nl.advertise<geometry_msgs::PointStamped> ("external_position", 10);
+                nl.advertise<geometry_msgs::PointStamped> (ext_position_topic_.c_str(), 10);
         pose_pub_ = 
-                nl.advertise<geometry_msgs::PoseStamped> ("external_pose", 10);
+                nl.advertise<geometry_msgs::PoseStamped> (ext_pose_topic_, 10);
         pose_rpy_pub_ =
-                nl.advertise<geometry_msgs::Vector3Stamped> ("external_pose_rpy", 10);
+                nl.advertise<geometry_msgs::Vector3Stamped> (ext_pose_rpy_topic_, 10);
         odometry_pub_ =
-                nl.advertise<nav_msgs::Odometry> ("external_odom", 10); 
+                nl.advertise<nav_msgs::Odometry> (ext_odom_topic_, 10); 
+        fullstate_pub_ = 
+                nl.advertise<testbed_msgs::FullStateStamped> (fullstate_topic_, 10); 
 
 
         // Initialize the header refereces of odometry messages
@@ -109,7 +111,25 @@ bool StateAggregator::LoadParameters(const ros::NodeHandle& n) {
 
         ros::NodeHandle np("~");
 
-        np.param<std::string>("topic", state_topic_, "/vrpn_client_node/cf1/pose");
+        // VRPN topic (Set as global)
+        np.param<std::string>("vrpn_topic", vrpn_topic_, 
+                        "/vrpn_client_node/cf1/pose");
+
+        // External position (just position)
+        np.param<std::string>("ext_position_topic", ext_position_topic_, 
+                        "external_position");
+        // External pose
+        np.param<std::string>("ext_pose_topic", ext_pose_topic_,
+                        "external_pose");
+        // External orientation (rpy)
+        np.param<std::string>("ext_pose_rpy_topic", ext_pose_rpy_topic_, 
+                        "external_pose_rpy");
+        // External odometry
+        np.param<std::string>("ext_odom_topic", ext_odom_topic_,
+                        "external_odom");
+        // Output information on the full state for the controller
+        np.param<std::string>("output_fullstate_topic", fullstate_topic_,
+                        "state");
 
         //    ROS_INFO("Namespace = %s", );
         // Params
@@ -149,7 +169,9 @@ bool StateAggregator::LoadParameters(const ros::NodeHandle& n) {
 
 bool StateAggregator::RegisterCallbacks(const ros::NodeHandle& n) {
         ros::NodeHandle nl(n);
-        inchannel1_= nl.subscribe(state_topic_, 10, &StateAggregator::onNewPose, this, ros::TransportHints().tcpNoDelay(true));
+        inchannel1_= nl.subscribe(vrpn_topic_.c_str(), 10, 
+                        &StateAggregator::onNewPose, this, 
+                        ros::TransportHints().tcpNoDelay(true));
         return true;
 }
 
@@ -200,7 +222,13 @@ void StateAggregator::onNewPose(
                 p_ = p_old_ + G_p * innov_p;
 
                 vel_ = vel_ + G_p * (innov_p / dt - vel_);
-
+                // Reset the velocity vector in case of NaN
+                for (int i = 0; i < 3; i++) {
+                    if (std::isnan(vel_[i])) {
+                        vel_ = Eigen::Vector3d::Zero();
+                        break;
+                    }
+                }
                 // TODO: Filter the quaternion part
                 qd_ = Eigen::Quaterniond::Identity();
                 w_ = Eigen::Vector3d::Zero(); 
@@ -224,9 +252,10 @@ void StateAggregator::onNewPose(
         // Convert to euler
         //euler_ = q_pf_.toRotationMatrix().eulerAngles(0, 1, 2);
 
-        euler_(0) =  atan2(2*q_pf_.y() * q_pf_.z() - 2*q_pf_.w()*q_pf_.x(), q_pf_.z()*q_pf_.z() - q_pf_.y()*q_pf_.y() - q_pf_.x()*q_pf_.x() + q_pf_.w()*q_pf_.w());
-        euler_(1) = -asin(2*q_pf_.x()*q_pf_.z() + 2*q_pf_.w()*q_pf_.y());
-        euler_(2) =  atan2(2*q_pf_.x()*q_pf_.y() - 2*q_pf_.z()*q_pf_.w(), q_pf_.x()*q_pf_.x() + q_pf_.w()*q_pf_.w() - q_pf_.z()*q_pf_.z() - q_pf_.y()*q_pf_.y());
+        euler_(0) =  atan2(2*q_pf_.y() * q_pf_.z() + 2*q_pf_.w()*q_pf_.x(), 
+                        q_pf_.z()*q_pf_.z() - q_pf_.y()*q_pf_.y() - q_pf_.x()*q_pf_.x() + q_pf_.w()*q_pf_.w());
+        euler_(1) = -asin(2*q_pf_.w()*q_pf_.y() - 2*q_pf_.x()*q_pf_.z());
+        euler_(2) =  atan2(2*q_pf_.x()*q_pf_.y() + 2*q_pf_.z()*q_pf_.w(), q_pf_.x()*q_pf_.x() + q_pf_.w()*q_pf_.w() - q_pf_.z()*q_pf_.z() - q_pf_.y()*q_pf_.y());
 
         // Pose: Position + Orientation
         //ext_pose_msg_.header.stamp = msg->header.stamp;
@@ -264,12 +293,29 @@ void StateAggregator::onNewPose(
         //ext_odom_trans_.header.stamp = msg->header.stamp;
         ext_odom_trans_.header.stamp = current_time;
         // Position
-        ext_odom_trans_.transform.translation.x = p_pf_[0];
-        ext_odom_trans_.transform.translation.y = p_pf_[1];
-        ext_odom_trans_.transform.translation.z = p_pf_[2];
+        ext_odom_trans_.transform.translation.x = p_pf_(0);
+        ext_odom_trans_.transform.translation.y = p_pf_(1);
+        ext_odom_trans_.transform.translation.z = p_pf_(2);
         // Orientation
         ext_odom_trans_.transform.rotation = ext_pose_msg_.pose.orientation;
 
+
+        // Update State Message
+        full_state_msg_.state.x = p_pf_(0);
+        full_state_msg_.state.y = p_pf_(1);
+        full_state_msg_.state.z = p_pf_(2);
+
+        full_state_msg_.state.x_dot = vel_(0);
+        full_state_msg_.state.y_dot = vel_(1);
+        full_state_msg_.state.z_dot = vel_(2);
+
+        full_state_msg_.state.roll = euler_(0);
+        full_state_msg_.state.pitch = euler_(1);
+        full_state_msg_.state.yaw = euler_(2);
+
+        full_state_msg_.state.roll_dot = 0.0;
+        full_state_msg_.state.pitch_dot = 0.0;
+        full_state_msg_.state.yaw_dot = 0.0;
 
         // Send messages and transorm
         ext_odom_broadcaster_.sendTransform(ext_odom_trans_);
