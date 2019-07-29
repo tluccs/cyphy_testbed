@@ -36,41 +36,26 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 //
-// Convert thrust to PWM signal.
+// The CmdVelConverter node.
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifndef CRAZYFLIE_UTILS_PWM_H
-#define CRAZYFLIE_UTILS_PWM_H
-
-#include "types.h"
-
-#include <limits>
 #include <ros/ros.h>
+#include "cmd_vel_converter.h"
 
-namespace crazyflie_utils {
-namespace pwm {
-  // Convert the given thrust to a PWM signal (still double).
-  static inline double ThrustToPwmDouble(double thrust) {
-    const double k_thrust = 42000.0 / constants::G; //40000.0 / constants::G;
-    return thrust * k_thrust;
+int main(int argc, char** argv) {
+  ros::init(argc, argv, "cmd_vel_converter");
+  ros::NodeHandle n("~");
+
+  crazyflie_control_merger::CmdVelConverter converter;
+
+  if (!converter.Initialize(n)) {
+    ROS_ERROR("%s: Failed to initialize cmd_vel_converter.",
+              ros::this_node::getName().c_str());
+    return EXIT_FAILURE;
   }
 
-  // Get the PWM signal (uint16) to generate the given thrust.
-  static inline uint16_t ThrustToPwmUnsignedShort(double thrust) {
-    const double control = ThrustToPwmDouble(thrust);
+  ros::spin();
 
-#ifdef ENABLE_DEBUG_MESSAGES
-    if (control > static_cast<double>(std::numeric_limits<uint16_t>::max())) {
-      ROS_WARN("Desired thrust is too high. Sending max PWM signal instead.");
-      return  std::numeric_limits<uint16_t>::max();
-    }
-#endif
-
-    return static_cast<uint16_t>(control);
-  }
-
-} //\namespace pwm
-} //\namespace crazyflie_utils
-
-#endif
+  return EXIT_SUCCESS;
+}

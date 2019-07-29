@@ -307,8 +307,10 @@ if __name__ == '__main__':
     commander_id = rospy.get_param('~command_id', 'cm1')
     target_frame = rospy.get_param('~target_frame', 'cf1')
     
-    dr_odom_topic_ = rospy.get_param('dr_odometry_topic', '/cf1/external_odom')
-    tg_pose_topic_ = rospy.get_param('tg_pose_topic', "/vrpn_client_node/target/pose")
+    dr_odom_topic_ = rospy.get_param('topics/in_vehicle_odom_topic', 'external_odom')
+    tg_pose_topic_ = rospy.get_param('topics/in_tg_pose_topic', "/vrpn_client_node/target/pose")
+
+    ctrlsetpoint_topic_ = rospy.get_param('topics/out_ctrl_setpoint', "setpoint")
 
     service_imp = rospy.Service('gen_ImpTrajectory', GenImpTrajectory, handle_genImpTrj)
     service_goto = rospy.Service('gen_goToTrajectory', GenGoToTrajectory, handle_genGotoTrj)
@@ -320,7 +322,7 @@ if __name__ == '__main__':
     rospy.Subscriber(tg_pose_topic_, PoseStamped, tg_callback)
 
     # Setpoint Publisher
-    ctrl_setpoint_pub = rospy.Publisher('setpoint', ControlSetpoint, queue_size=10)
+    ctrl_setpoint_pub = rospy.Publisher(ctrlsetpoint_topic_, ControlSetpoint, queue_size=10)
 
     rospy.spin()
 

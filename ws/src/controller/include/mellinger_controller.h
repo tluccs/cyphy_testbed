@@ -48,11 +48,13 @@
 #include "angles.h"
 #include <testbed_msgs/ControlSetpoint.h>
 #include <testbed_msgs/Control.h>
+#include <testbed_msgs/ControlStamped.h>
 #include <testbed_msgs/FullStateStamped.h>
 #include <Eigen/Geometry>
 
 #include <ros/ros.h>
 #include <std_msgs/Empty.h>
+#include <nav_msgs/Odometry.h>
 #include <math.h>
 #include <fstream>
 
@@ -86,7 +88,7 @@ class MellingerController {
 
   // Process an incoming state measurement.
   void StateCallback(
-    const testbed_msgs::FullStateStamped::ConstPtr& msg);
+    const nav_msgs::Odometry::ConstPtr& msg);
 
   double g_vehicleMass; // TODO: should be CF global for other modules
   double massThrust;
@@ -134,6 +136,7 @@ class MellingerController {
 
   Vector3d sp_pos_, sp_vel_, sp_acc_; //, sp_r_pos_, sp_r_vel_, sp_r_acc_;
   Vector3d pos_, vel_, r_pos_, r_vel_;
+  Eigen::Quaterniond quat_;
 
   double sp_roll_,sp_pitch_,sp_yaw_;
 

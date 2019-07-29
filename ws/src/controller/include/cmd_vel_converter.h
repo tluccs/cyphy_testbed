@@ -36,41 +36,56 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 //
-// Convert thrust to PWM signal.
+// Class to convert ControlStamped messages to Twists and publish on cmd_vel.
+// Provides services "takeoff" and "land" that determine whether cmd_vel gets
+// 0 or the actual control signal requested.
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifndef CRAZYFLIE_UTILS_PWM_H
-#define CRAZYFLIE_UTILS_PWM_H
+#ifndef CRAZYFLIE_CONTROL_MERGER_CMD_VEL_CONVERTER_H
+#define CRAZYFLIE_CONTROL_MERGER_CMD_VEL_CONVERTER_H
 
 #include "types.h"
+#include "angles.h"
+#include "pwm.h"
+#include <testbed_msgs/ControlStamped.h>
 
-#include <limits>
 #include <ros/ros.h>
+#include <geometry_msgs/Twist.h>
+#include <std_msgs/Empty.h>
+#include <math.h>
 
-namespace crazyflie_utils {
-namespace pwm {
-  // Convert the given thrust to a PWM signal (still double).
-  static inline double ThrustToPwmDouble(double thrust) {
-    const double k_thrust = 42000.0 / constants::G; //40000.0 / constants::G;
-    return thrust * k_thrust;
-  }
+namespace crazyflie_control_merger {
 
-  // Get the PWM signal (uint16) to generate the given thrust.
-  static inline uint16_t ThrustToPwmUnsignedShort(double thrust) {
-    const double control = ThrustToPwmDouble(thrust);
+class CmdVelConverter {
+public:
+  ~CmdVelConverter() {}
+  explicit CmdVelConverter()
+    : initialized_(false) {}
 
-#ifdef ENABLE_DEBUG_MESSAGES
-    if (control > static_cast<double>(std::numeric_limits<uint16_t>::max())) {
-      ROS_WARN("Desired thrust is too high. Sending max PWM signal instead.");
-      return  std::numeric_limits<uint16_t>::max();
-    }
-#endif
+  // Initialize this class.
+  bool Initialize(const ros::NodeHandle& n);
 
-    return static_cast<uint16_t>(control);
-  }
+private:
+  // Load parameters and register callbacks.
+  bool LoadParameters(const ros::NodeHandle& n);
+  bool RegisterCallbacks(const ros::NodeHandle& n);
 
-} //\namespace pwm
-} //\namespace crazyflie_utils
+  // Process an incoming reference point.
+  void ControlCallback(const testbed_msgs::ControlStamped::ConstPtr& msg);
+
+  // Publishers, subscribers, and topics.
+  ros::Publisher cmd_vel_pub_;
+  ros::Subscriber control_sub_;
+
+  std::string cmd_vel_topic_;
+  std::string control_topic_;
+
+  // Naming and initialization.
+  bool initialized_;
+  std::string name_;
+}; //\class NoYawMerger
+
+} //\crazyflie_control_merger
 
 #endif
