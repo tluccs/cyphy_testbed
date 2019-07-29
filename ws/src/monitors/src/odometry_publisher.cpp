@@ -55,7 +55,8 @@ bool OdometryPublisher::LoadParameters(const ros::NodeHandle& n) {
         nh.param<std::string>("tg_frame_id", tg_frame_id_, "cf1");
 
         nh.param<std::string>("out_ghost_topic", ghost_topic_, "ghost");
-        nh.param<std::string>("controlsetpoint_topic", ctrlsetpoint_topic_, "cf1/setpoint");
+        nh.param<std::string>("controlsetpoint_topic", 
+                        ctrlsetpoint_topic_, "setpoint");
 
         ROS_INFO("Commander ID: %s", cm_id_.c_str());
         ROS_INFO("Target Frame: %s", tg_frame_id_.c_str());
@@ -65,7 +66,8 @@ bool OdometryPublisher::LoadParameters(const ros::NodeHandle& n) {
 
 bool OdometryPublisher::RegisterCallbacks(const ros::NodeHandle& n) {
         ros::NodeHandle nh(n);
-        ROS_INFO("Node %s: Subscribing to %s", name_.c_str(), ghost_topic_.c_str());
+        ROS_INFO("Node %s: Subscribing to %s", name_.c_str(), 
+                        ctrlsetpoint_topic_.c_str());
         inchannel1_ = nh.subscribe(ctrlsetpoint_topic_, 10, 
                         &OdometryPublisher::callback, this);	
 

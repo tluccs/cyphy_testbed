@@ -112,23 +112,23 @@ bool StateAggregator::LoadParameters(const ros::NodeHandle& n) {
         ros::NodeHandle np("~");
 
         // VRPN topic (Set as global)
-        np.param<std::string>("vrpn_topic", vrpn_topic_, 
+        np.param<std::string>("in_vrpn_topic", vrpn_topic_, 
                         "/vrpn_client_node/cf1/pose");
 
         // External position (just position)
-        np.param<std::string>("ext_position_topic", ext_position_topic_, 
+        np.param<std::string>("out_ext_position_topic", ext_position_topic_, 
                         "external_position");
         // External pose
-        np.param<std::string>("ext_pose_topic", ext_pose_topic_,
+        np.param<std::string>("out_ext_pose_topic", ext_pose_topic_,
                         "external_pose");
         // External orientation (rpy)
-        np.param<std::string>("ext_pose_rpy_topic", ext_pose_rpy_topic_, 
+        np.param<std::string>("out_ext_pose_rpy_topic", ext_pose_rpy_topic_, 
                         "external_pose_rpy");
         // External odometry
-        np.param<std::string>("ext_odom_topic", ext_odom_topic_,
+        np.param<std::string>("out_ext_odom_topic", ext_odom_topic_,
                         "external_odom");
         // Output information on the full state for the controller
-        np.param<std::string>("output_fullstate_topic", fullstate_topic_,
+        np.param<std::string>("out_fullstate_topic", fullstate_topic_,
                         "state");
 
         //    ROS_INFO("Namespace = %s", );
