@@ -63,6 +63,10 @@ bool CommanderInterface::Initialize(const ros::NodeHandle& n) {
 bool CommanderInterface::takeoff_callback(
                 commander_interface::TakeOff::Request  &req,
                 commander_interface::TakeOff::Response &res) {
+
+        ROS_INFO("%s: Takeoff requested! \n \t Height: %.3f | Duration: %.3f", 
+                        name_.c_str(), req.height, req.duration);
+
         guidance::GenTrackTrajectory srv;
 
         boost::array<float, 3> v{{0.0, 0.0, 0.0}};
@@ -74,7 +78,7 @@ bool CommanderInterface::takeoff_callback(
 
         srv.request.tg_time = req.duration;
 
-        if (guidance_clnt_.call(srv))
+        if (guidance_clnt_.call(srv) == 1)
                 res.ack = "Roger!";
         else
                 res.ack = "Fail!";

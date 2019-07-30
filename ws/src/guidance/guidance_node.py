@@ -121,7 +121,7 @@ def handle_genImpTrjAuto(req):
     my_traj.writeTofile(Dt, '/tmp/toTarget.csv')
 
     t = Thread(target=rep_trajectory, args=(my_traj, start_pos, Tmax, frequency)).start()
-    return "Roger!"
+    return True 
 
 
 
@@ -193,19 +193,20 @@ def handle_genImpTrj(req):
     my_traj = trj.Trajectory(ppx, ppy, ppz, ppw)
  
     t = Thread(target=rep_trajectory, args=(my_traj,start_pos, Tmax, frequency)).start()
-    return "Roger!"
+    return True
 
 
 def handle_genTrackTrj(req):
-
+ 
     start_pos = np.array([current_odometry.pose.pose.position.x, 
             current_odometry.pose.pose.position.y, 
             current_odometry.pose.pose.position.z])
 
-    start_vel = np.array([current_odometry.twist.twist.position.x, 
-            current_odometry.twist.twist.position.y, 
-            current_odometry.twist.twist.position.z])
+    start_vel = np.array([current_odometry.twist.twist.linear.x, 
+            current_odometry.twist.twist.linear.y, 
+            current_odometry.twist.twist.linear.z])
 
+   
     tg_p = req.target_p
     tg_v = req.target_v
     tg_a = req.target_a
@@ -213,6 +214,16 @@ def handle_genTrackTrj(req):
      
     tg_prel = tg_p - start_pos
     tg_vrel = tg_v - start_vel
+
+    rospy.loginfo("On Target in " + str(t_impact) + " sec!")
+    rospy.loginfo("Vehicle = [" + str(start_pos[0]) + " " + str(start_pos[1]) + 
+            " " + str(start_pos[2]) + "]")
+
+    rospy.loginfo("Target Abs = [" + str(tg_p[0]) + " " + str(tg_p[1]) + 
+            " " + str(tg_p[2]) + "]")
+
+    rospy.loginfo("Target Rel= [" + str(tg_prel[0]) + " " + str(tg_prel[1]) + 
+            " " + str(tg_prel[2]) + "]")
 
     # Times (Absolute and intervals)
     knots = np.array([0, t_impact]) # One second each piece
@@ -261,7 +272,7 @@ def handle_genTrackTrj(req):
     t = Thread(target=rep_trajectory, 
             args=(my_traj, start_pos, t_impact, frequency)).start()
 
-    return "Roger!"
+    return True 
 
 
 def handle_genGotoTrj(req):
@@ -321,7 +332,7 @@ def handle_genGotoTrj(req):
     t = Thread(target=rep_trajectory, 
             args=(my_traj, start_pos, t_impact, frequency)).start()
 
-    return "Roger!"
+    return True 
 
 
 def rep_trajectory(traj, start_position, timeSpan, freq):
