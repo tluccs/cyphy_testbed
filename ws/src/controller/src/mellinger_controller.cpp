@@ -198,6 +198,9 @@ void MellingerController::StateCallback(
   Vector3d p_error = sp_pos_ - pos_;
   Vector3d v_error = sp_vel_ - vel_;
 
+  std::cout << "p_error: " << p_error << std::endl;
+  std::cout << "v_error: " << v_error << std::endl;
+
   // Integral Error
 
   i_error_x += p_error(0) * dt;
@@ -211,9 +214,9 @@ void MellingerController::StateCallback(
 
   // Desired thrust [F_des]
   Vector3d target_thrust = Vector3d::Zero();
-  target_thrust(0) = g_vehicleMass * sp_acc_(0)                      + kp_xy * p_error(0) + kd_xy * v_error(0) + ki_xy * i_error_x;
-  target_thrust(1) = g_vehicleMass * sp_acc_(1)                      + kp_xy * p_error(1) + kd_xy * v_error(1) + ki_xy * i_error_y;
-  target_thrust(2) = g_vehicleMass * (sp_acc_(2) + GRAVITY_MAGNITUDE) + kp_z  * p_error(2) + kd_z  * v_error(2) + ki_z  * i_error_z;
+  target_thrust(0) = sp_acc_(0)                      + kp_xy * p_error(0) + kd_xy * v_error(0);// + ki_xy * i_error_x;
+  target_thrust(1) = sp_acc_(1)                      + kp_xy * p_error(1) + kd_xy * v_error(1);// + ki_xy * i_error_y;
+  target_thrust(2) = (sp_acc_(2) + GRAVITY_MAGNITUDE) + kp_z  * p_error(2) + kd_z  * v_error(2);// + ki_z  * i_error_z;
 
   //std::cout << "target_thrust: " << target_thrust << std::endl;
 
@@ -254,7 +257,7 @@ void MellingerController::StateCallback(
   testbed_msgs::ControlStamped control_msg;
   control_msg.control.roll = std::atan2(Rdes(2,1),Rdes(2,2));
   control_msg.control.pitch = -std::asin(Rdes(2,0));
-  control_msg.control.yaw_dot = std::atan2(Rdes(1,0),Rdes(0,0));
+  control_msg.control.yaw_dot = -std::atan2(R(1,0),R(0,0)); //std::atan2(Rdes(1,0),Rdes(0,0));
   control_msg.control.thrust = current_thrust;
 
   control_pub_.publish(control_msg);
