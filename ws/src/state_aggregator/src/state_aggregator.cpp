@@ -99,7 +99,7 @@ bool StateAggregator::Initialize(const ros::NodeHandle& n) {
         ext_odometry_msg_.header.frame_id = "world";
         ext_odometry_msg_.child_frame_id = "cf1";
 
-        bool initialized_ = true;
+        initialized_ = true;
 
         return true;
 }

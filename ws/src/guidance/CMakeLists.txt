@@ -1,13 +1,13 @@
 cmake_minimum_required(VERSION 2.8.6)
-project("testbed_srvs")
+project(guidance)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-
-find_package(catkin REQUIRED COMPONENTS
-	roscpp
-	message_generation
+find_package(catkin REQUIRED 
+	COMPONENTS 
+    roscpp
+	rospy
+	testbed_msgs
+	message_generation 
 	)
-
 
 file(GLOB srv_files RELATIVE 
 	${PROJECT_SOURCE_DIR}/srv ${PROJECT_SOURCE_DIR}/srv/*.srv)
@@ -21,8 +21,7 @@ generate_messages(
 	)
 
 catkin_package(
-	CATKIN_DEPENDS
-	roscpp
-	message_runtime
-	)
-
+	CATKIN_DEPENDS 
+    rospy
+    roscpp
+	message_runtime)

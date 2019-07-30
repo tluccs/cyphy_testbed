@@ -37,9 +37,15 @@ add_executable(cmd_vel_converter_node
 	src/cmd_vel_converter.cpp
 )
 
-add_dependencies(mellinger_controller_node crazyflie_demo_generate_messages_cpp)
+add_dependencies(mellinger_controller_node 
+	crazyflie_demo_generate_messages_cpp
+	${catkin_EXPORTED_TARGETS}
+	)
 
-add_dependencies(cmd_vel_converter_node cmd_vel_converter_generate_messages_cpp)
+add_dependencies(cmd_vel_converter_node 
+	cmd_vel_converter_generate_messages_cpp
+	${catkin_EXPORTED_TARGETS}
+	)
 
 target_link_libraries(
 	mellinger_controller_node

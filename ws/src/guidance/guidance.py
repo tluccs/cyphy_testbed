@@ -11,7 +11,8 @@ from threading import Thread
 from tf.transformations import euler_from_matrix
 from nav_msgs.msg import Odometry
 from testbed_msgs.msg import ControlSetpoint 
-from testbed_srvs.srv import GenImpTrajectory, GenGoToTrajectory, GenImpTrajectoryAuto
+from guidance.srv import GenImpTrajectory, GenGoToTrajectory, GenImpTrajectoryAuto
+from guidance.srv import GenTrackTrajectory
 from geometry_msgs.msg import PoseStamped
 
 import trjgen.class_pwpoly as pw
@@ -192,6 +193,74 @@ def handle_genImpTrj(req):
     return "Roger!"
 
 
+def handle_genTrackTrj(req):
+
+    start_pos = np.array([current_odometry.pose.pose.position.x, 
+            current_odometry.pose.pose.position.y, 
+            current_odometry.pose.pose.position.z])
+
+    start_vel = np.array([current_odometry.twist.twist.position.x, 
+            current_odometry.twist.twist.position.y, 
+            current_odometry.twist.twist.position.z])
+
+    tg_p = req.target_p
+    tg_v = req.target_v
+    tg_a = req.target_a
+    t_impact = req.tg_time
+     
+    tg_prel = tg_p - start_pos
+    tg_vrel = tg_v - start_vel
+
+    # Times (Absolute and intervals)
+    knots = np.array([0, t_impact]) # One second each piece
+
+    # Polynomial characteristic:  order
+    ndeg = 7
+    nconstr = 4
+
+    X = np.array([
+        [ 0.0,    tg_prel[0]],
+        [ 0.0,    tg_vrel[0]],
+        [ 0.0,    tg_a[0]],
+        [ 0.0,    0.0],
+        ])
+
+    Y = np.array([
+        [ 0.0,    tg_prel[1]],
+        [ 0.0,    tg_vrel[1]],
+        [ 0.0,    tg_a[1]],
+        [ 0.0,    0.0],
+        ])
+    
+    Z = np.array([
+        [ 0.0,    tg_prel[2]],
+        [ 0.0,    tg_vrel[2]],
+        [ 0.0,    tg_a[2]],
+        [ 0.0,    0.0],
+        ])
+
+    W = np.array([
+        [ 0.0,    0.0],
+        [ 0.0,    0.0],
+        [ 0.0,    0.0],
+        [ 0.0,    0.0],
+        ])
+
+    ppx = pw.PwPoly(X, knots, ndeg)
+    ppy = pw.PwPoly(Y, knots, ndeg)
+    ppz = pw.PwPoly(Z, knots, ndeg)
+    ppw = pw.PwPoly(W, knots, ndeg)
+
+    frequency = rospy.get_param('~freq', 30.0);
+
+    my_traj = trj.Trajectory(ppx, ppy, ppz, ppw)
+
+    t = Thread(target=rep_trajectory, 
+            args=(my_traj, start_pos, t_impact, frequency)).start()
+
+    return "Roger!"
+
+
 def handle_genGotoTrj(req):
     tg_p = req.target_p
     tg_v = req.target_v
@@ -312,17 +381,22 @@ if __name__ == '__main__':
 
     ctrlsetpoint_topic_ = rospy.get_param('topics/out_ctrl_setpoint', "setpoint")
 
-    service_imp = rospy.Service('gen_ImpTrajectory', GenImpTrajectory, handle_genImpTrj)
-    service_goto = rospy.Service('gen_goToTrajectory', GenGoToTrajectory, handle_genGotoTrj)
+    service_imp = rospy.Service('gen_ImpTrajectory', 
+            GenImpTrajectory, handle_genImpTrj)
 
-    service_imp_auto = rospy.Service('gen_ImpTrajectoryAuto', GenImpTrajectoryAuto, handle_genImpTrjAuto)
+    service_track = rospy.Service('gen_TrackTrajectory', 
+            GenTrackTrajectory, handle_genTrackTrj)
+
+    service_imp_auto = rospy.Service('gen_ImpTrajectoryAuto', 
+            GenImpTrajectoryAuto, handle_genImpTrjAuto)
 
     # Subscribe to vehicle state update
     rospy.Subscriber(dr_odom_topic_, Odometry, odom_callback)
     rospy.Subscriber(tg_pose_topic_, PoseStamped, tg_callback)
 
     # Setpoint Publisher
-    ctrl_setpoint_pub = rospy.Publisher(ctrlsetpoint_topic_, ControlSetpoint, queue_size=10)
+    ctrl_setpoint_pub = rospy.Publisher(ctrlsetpoint_topic_, 
+            ControlSetpoint, queue_size=10)
 
     rospy.spin()
 

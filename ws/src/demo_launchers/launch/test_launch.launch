@@ -11,7 +11,7 @@
     ============================================================================
     Trajectory Generation Service
     -->
-    <node name="Guidance_Node" pkg="command_interface" type="guidance.py" output="screen"> 
+    <node name="Guidance_Node" pkg="guidance" type="guidance.py" output="screen"> 
     </node>
 
 		<!--
