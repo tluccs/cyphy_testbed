@@ -58,6 +58,7 @@ class CommanderInterface {
 
                 // Names and topics
                 std::string name_;
+                std::string namespace_;
 
                 bool initialized_;
 };

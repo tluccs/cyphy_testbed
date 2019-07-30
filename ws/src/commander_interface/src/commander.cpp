@@ -26,15 +26,19 @@ bool CommanderInterface::LoadParameters(const ros::NodeHandle& n) {
  * Initialization function
  */
 bool CommanderInterface::Initialize(const ros::NodeHandle& n) {
-        ros::NodeHandle nh("~");
         // Get the name of the node
-        name_ = ros::this_node::getName().c_str();
+        name_ = ros::this_node::getName();
+        namespace_ = ros::this_node::getNamespace();
 
         // Load Parameters
         if (!LoadParameters(n)) {
                 ROS_ERROR("%s: Failed to load parameters.", name_.c_str());
                 return false;
         }
+
+        // I want to advertise service in the node namespace
+        ros::NodeHandle nh("~");
+        ros::NodeHandle ng(n);
 
         // Advertise topics/Services
         takeoff_srv_ = nh.advertiseService("takeoff_srv", 
@@ -49,7 +53,8 @@ bool CommanderInterface::Initialize(const ros::NodeHandle& n) {
         track_srv_ = nh.advertiseService("track_srv",
                         &CommanderInterface::track_callback, this);
 
-        guidance_clnt_ = nh.serviceClient<guidance::GenTrackTrajectory>(
+        // The Guidance is in the
+        guidance_clnt_ = ng.serviceClient<guidance::GenTrackTrajectory>(
                                 "gen_TrackTrajectory");
 
 
@@ -78,7 +83,7 @@ bool CommanderInterface::takeoff_callback(
 
         srv.request.tg_time = req.duration;
 
-        if (guidance_clnt_.call(srv) == 1)
+        if (guidance_clnt_.call(srv) == true)
                 res.ack = "Roger!";
         else
                 res.ack = "Fail!";
