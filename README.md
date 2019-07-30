@@ -73,6 +73,6 @@ It is possible to test the commander calling the ros service to request a goto m
 The argument for the service is a tuple of float32, representing the position [x, y, z], and a float32 representing the duration of the requested movement. 
 For example: 
 ```
-rosservice call /cf1/Commander\_Node/goTo\_srv '[1.0, 1.0, 1.0]' '3.0'
+rosservice call /cf1/Commander_Node/goTo_srv '[1.0, 1.0, 1.0]' '3.0'
 ```
 The rViz visualizer should plot a reference frame (ghost) moving towards the requested point. That movement of that frame is generated simulating the requested trajectory. 
