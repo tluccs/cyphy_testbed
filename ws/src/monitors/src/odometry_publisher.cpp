@@ -54,8 +54,8 @@ bool OdometryPublisher::LoadParameters(const ros::NodeHandle& n) {
         nh.param<std::string>("commander_id", cm_id_, "cm1");
         nh.param<std::string>("tg_frame_id", tg_frame_id_, "cf1");
 
-        nh.param<std::string>("out_ghost_topic", ghost_topic_, "ghost");
-        nh.param<std::string>("controlsetpoint_topic", 
+        nh.param<std::string>("topics/out_ghost_topic", ghost_topic_, "ghost_odom");
+        nh.param<std::string>("topics/in_ctrlsetpoint_topic", 
                         ctrlsetpoint_topic_, "setpoint");
 
         ROS_INFO("Commander ID: %s", cm_id_.c_str());

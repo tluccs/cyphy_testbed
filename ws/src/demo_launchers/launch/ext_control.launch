@@ -2,9 +2,9 @@
 
 <launch>
   <!-- Topics. -->
-  <arg name="setpoint_topic" default="setpoint" />
-  <arg name="state_topic" default="state" />
-  <arg name="control_topic" default="control" />
+  <arg name="topics/setpoint_topic" default="setpoint" />
+  <arg name="topics/state_topic" default="state" />
+  <arg name="topics/control_topic" default="control" />
 
   <!-- Control parameters. -->
   <arg name="g_vehicleMass" value="0.032" />
@@ -79,8 +79,8 @@
     <param name="i_error_m_y" value="$(arg i_error_m_y)" />
     <param name="i_error_m_z" value="$(arg i_error_m_z)" />
     
-    <param name="topics/setpoint" value="$(arg setpoint_topic)" />
-    <param name="topics/state" value="$(arg state_topic)" />
-    <param name="topics/control" value="$(arg control_topic)" />
+    <param name="topics/setpoint" value="$(arg topics/setpoint_topic)" />
+    <param name="topics/state" value="$(arg topics/state_topic)" />
+    <param name="topics/control" value="$(arg topics/control_topic)" />
   </node>
 </launch>

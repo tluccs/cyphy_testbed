@@ -90,9 +90,6 @@ bool StateAggregator::Initialize(const ros::NodeHandle& n) {
                 nl.advertise<geometry_msgs::Vector3Stamped> (ext_pose_rpy_topic_, 10);
         odometry_pub_ =
                 nl.advertise<nav_msgs::Odometry> (ext_odom_topic_, 10); 
-        fullstate_pub_ = 
-                nl.advertise<testbed_msgs::FullStateStamped> (fullstate_topic_, 10); 
-
 
         // Initialize the header refereces of odometry messages
         ext_odom_trans_.header.frame_id = "world";
@@ -112,24 +109,21 @@ bool StateAggregator::LoadParameters(const ros::NodeHandle& n) {
         ros::NodeHandle np("~");
 
         // VRPN topic (Set as global)
-        np.param<std::string>("in_vrpn_topic", vrpn_topic_, 
+        np.param<std::string>("topics/in_vrpn_topic", vrpn_topic_, 
                         "/vrpn_client_node/cf1/pose");
 
         // External position (just position)
-        np.param<std::string>("out_ext_position_topic", ext_position_topic_, 
+        np.param<std::string>("topics/out_ext_position_topic", ext_position_topic_, 
                         "external_position");
         // External pose
-        np.param<std::string>("out_ext_pose_topic", ext_pose_topic_,
+        np.param<std::string>("topics/out_ext_pose_topic", ext_pose_topic_,
                         "external_pose");
         // External orientation (rpy)
-        np.param<std::string>("out_ext_pose_rpy_topic", ext_pose_rpy_topic_, 
+        np.param<std::string>("topics/out_ext_pose_rpy_topic", ext_pose_rpy_topic_, 
                         "external_pose_rpy");
         // External odometry
-        np.param<std::string>("out_ext_odom_topic", ext_odom_topic_,
+        np.param<std::string>("topics/out_ext_odom_topic", ext_odom_topic_,
                         "external_odom");
-        // Output information on the full state for the controller
-        np.param<std::string>("out_fullstate_topic", fullstate_topic_,
-                        "state");
 
         //    ROS_INFO("Namespace = %s", );
         // Params
@@ -298,24 +292,6 @@ void StateAggregator::onNewPose(
         ext_odom_trans_.transform.translation.z = p_pf_(2);
         // Orientation
         ext_odom_trans_.transform.rotation = ext_pose_msg_.pose.orientation;
-
-
-        // Update State Message
-        full_state_msg_.state.x = p_pf_(0);
-        full_state_msg_.state.y = p_pf_(1);
-        full_state_msg_.state.z = p_pf_(2);
-
-        full_state_msg_.state.x_dot = vel_(0);
-        full_state_msg_.state.y_dot = vel_(1);
-        full_state_msg_.state.z_dot = vel_(2);
-
-        full_state_msg_.state.roll = euler_(0);
-        full_state_msg_.state.pitch = euler_(1);
-        full_state_msg_.state.yaw = euler_(2);
-
-        full_state_msg_.state.roll_dot = 0.0;
-        full_state_msg_.state.pitch_dot = 0.0;
-        full_state_msg_.state.yaw_dot = 0.0;
 
         // Send messages and transorm
         ext_odom_broadcaster_.sendTransform(ext_odom_trans_);

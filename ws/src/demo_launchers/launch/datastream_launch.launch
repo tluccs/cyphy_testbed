@@ -34,12 +34,11 @@ sensors and provides an estimator of the drone state.
 <node pkg="state_aggregator" name="aggregator" type="state_aggregator" 
         output="screen"> 
         <!-- Topic parameters -->
-        <param name="in_vrpn_topic" value="/vrpn_client_node/cf1/pose" />
-        <param name="out_ext_position_topic" value="external_position" />
-        <param name="out_ext_pose_topic" value="external_pose" />
-        <param name="out_ext_pose_rpy_topic" value="external_pose_rpy" />
-        <param name="out_ext_odom_topic" value="external_odom" />
-        <param name="out_fullstate_topic" value="state" />
+        <param name="topics/in_vrpn_topic" value="/vrpn_client_node/cf1/pose" />
+        <param name="topics/out_ext_position_topic" value="external_position" />
+        <param name="topics/out_ext_pose_topic" value="external_pose" />
+        <param name="topics/out_ext_pose_rpy_topic" value="external_pose_rpy" />
+        <param name="topics/out_ext_odom_topic" value="external_odom" />
 
         <param name="valpha" value="0.8" type='double' />
         <param name="qdalpha" value="0.9" type='double' />

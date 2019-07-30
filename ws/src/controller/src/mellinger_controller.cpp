@@ -220,6 +220,8 @@ void MellingerController::StateCallback(
 
   //std::cout << "target_thrust: " << target_thrust << std::endl;
 
+  //std::cout << "target_thrust: " << target_thrust << std::endl;
+
   // Move YAW angle setpoint
   double desiredYaw = sp_yaw_;
 
