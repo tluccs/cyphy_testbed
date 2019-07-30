@@ -2,7 +2,7 @@
 <package>
 	<name>demo_launchers</name>
 	<version>0.0.1</version>
-	<description> Launcher files for the demos </description>
+	<description>Demos</description>
 
 	<maintainer email="lpannocchi@g.ucla.edu">Luigi Pannocchi</maintainer>
 
