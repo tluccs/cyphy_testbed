@@ -2,7 +2,8 @@
 
 int main(int argc, char* argv[]) {
         ros::init(argc, argv, "commander");
-        ros::NodeHandle n("~");
+
+	ROS_INFO("Starting Control Setpoint publisher");
 
         CommanderInterface commander;
 

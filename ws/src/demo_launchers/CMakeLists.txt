@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   state_aggregator
   monitors
+  guidance
 )
 
 ## System dependencies are found with CMake's conventions

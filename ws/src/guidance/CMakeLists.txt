@@ -17,11 +17,9 @@ add_service_files(
 	FILES ${srv_files}
 	)
 
-generate_messages(
-	)
+generate_messages()
 
 catkin_package(
 	CATKIN_DEPENDS 
     rospy
-    roscpp
 	message_runtime)

@@ -11,9 +11,12 @@ from threading import Thread
 from tf.transformations import euler_from_matrix
 from nav_msgs.msg import Odometry
 from testbed_msgs.msg import ControlSetpoint 
-from guidance.srv import GenImpTrajectory, GenGoToTrajectory, GenImpTrajectoryAuto
-from guidance.srv import GenTrackTrajectory
 from geometry_msgs.msg import PoseStamped
+
+from guidance.srv import GenImpTrajectory
+from guidance.srv import GenGoToTrajectory
+from guidance.srv import GenImpTrajectoryAuto
+from guidance.srv import GenTrackTrajectory
 
 import trjgen.class_pwpoly as pw
 import trjgen.class_trajectory as trj
