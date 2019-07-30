@@ -223,7 +223,7 @@ void MellingerController::StateCallback(
   //std::cout << "target_thrust: " << target_thrust << std::endl;
 
   // Move YAW angle setpoint
-  double desiredYaw = sp_yaw_;
+  double desiredYaw = 0;//sp_yaw_;
 
   // // Z-Axis [zB]
   //Eigen::Quaterniond q;
