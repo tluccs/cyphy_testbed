@@ -196,6 +196,8 @@ def handle_genImpTrj(req):
     return True
 
 
+# Generate a tracking trajectory to reach an absolute waypoint 
+# with a given velocity and acceleration.
 def handle_genTrackTrj(req):
  
     start_pos = np.array([current_odometry.pose.pose.position.x, 
@@ -213,7 +215,6 @@ def handle_genTrackTrj(req):
     t_impact = req.tg_time
      
     tg_prel = tg_p - start_pos
-    tg_vrel = tg_v - start_vel
 
     rospy.loginfo("On Target in " + str(t_impact) + " sec!")
     rospy.loginfo("Vehicle = [" + str(start_pos[0]) + " " + str(start_pos[1]) + 
@@ -233,24 +234,24 @@ def handle_genTrackTrj(req):
     nconstr = 4
 
     X = np.array([
-        [ 0.0,    tg_prel[0]],
-        [ 0.0,    tg_vrel[0]],
-        [ 0.0,    tg_a[0]],
-        [ 0.0,    0.0],
+        [ 0.0,          tg_prel[0]],
+        [ start_vel[0], tg_v[0]],
+        [ 0.0,          tg_a[0]],
+        [ 0.0,          0.0],
         ])
 
     Y = np.array([
-        [ 0.0,    tg_prel[1]],
-        [ 0.0,    tg_vrel[1]],
-        [ 0.0,    tg_a[1]],
-        [ 0.0,    0.0],
+        [ 0.0,          tg_prel[1]],
+        [ start_vel[1], tg_v[1]],
+        [ 0.0,          tg_a[1]],
+        [ 0.0,          0.0],
         ])
     
     Z = np.array([
-        [ 0.0,    tg_prel[2]],
-        [ 0.0,    tg_vrel[2]],
-        [ 0.0,    tg_a[2]],
-        [ 0.0,    0.0],
+        [ 0.0,          tg_prel[2]],
+        [ start_vel[2], tg_v[2]],
+        [ 0.0,          tg_a[2]],
+        [ 0.0,          0.0],
         ])
 
     W = np.array([
