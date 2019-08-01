@@ -10,12 +10,12 @@
   <arg name="g_vehicleMass" value="0.032" />
   <arg name="massThrust" value="132000" />
 
-  <arg name="kp_xy" value="10" />
+  <arg name="kp_xy" value="5" />
   <arg name="kd_xy" value="2" />
   <arg name="ki_xy" value="0.2" />
   <arg name="i_range_xy" value="2.0" />
 
-  <arg name="kp_z" value="10" />
+  <arg name="kp_z" value="5" />
   <arg name="kd_z" value="2" />
   <arg name="ki_z" value="0.2" />
   <arg name="i_range_z" value="2.0" />

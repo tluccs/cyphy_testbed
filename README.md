@@ -41,6 +41,7 @@ The project was developed in *ROS Melodic* and some modules used *Eigen*. Make s
 
 Dependencies:
 - [Eigen](https://eigen.tuxfamily.org) -- a header-only linear algebra library for C++
+- [python-scipy] -- python library for math computation
 
 The repository contains submodules, thus, make sure you clone *recursively*.
 To build the framework, navigate to the `ws/` directory (the _workspace_), and run
@@ -72,6 +73,6 @@ It is possible to test the commander calling the ros service to request a goto m
 The argument for the service is a tuple of float32, representing the position [x, y, z], and a float32 representing the duration of the requested movement. 
 For example: 
 ```
-rosservice call /cf1/Commander\_Node/goTo\_srv '[1.0, 1.0, 1.0]' '3.0'
+rosservice call /cf1/Commander_Node/goTo_srv '[1.0, 1.0, 1.0]' '3.0'
 ```
 The rViz visualizer should plot a reference frame (ghost) moving towards the requested point. That movement of that frame is generated simulating the requested trajectory. 
