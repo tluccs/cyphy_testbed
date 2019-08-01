@@ -76,6 +76,7 @@ bool CommanderInterface::takeoff_callback(
 
         boost::array<float, 3> v{{0.0, 0.0, 0.0}};
 
+        srv.request.ref = "Relative";
         srv.request.target_v = v;
         srv.request.target_a = v;
         v[2] = req.height;
@@ -99,6 +100,7 @@ bool CommanderInterface::land_callback(
 
         boost::array<float, 3> v{{0.0, 0.0, 0.0}};
 
+        srv.request.ref = "Absolute";
         srv.request.target_v = v;
         srv.request.target_a = v;
         v[2] = req.height;
