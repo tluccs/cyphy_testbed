@@ -25,20 +25,20 @@
     <node name="Commander_Node" pkg="commander_interface" type="commander" output="screen">
     </node>
 
+
     <!--
     ============================================================================
     Contoller Node
-    -->
 		<include file="$(find demo_launchers)/launch/ext_control.launch">
 			<arg name="topics/setpoint_topic" value="/cf1/setpoint" />
 			<arg name="topics/control_topic" value="/cf1/control" />
 			<arg name="topics/state_topic" value="/cf1/external_odom" />
 		</include>
 
+    -->
 		<!--
 		============================================================================
 		Command Converter
-		-->
 		<node name="cmd_vel_converter"
         pkg="controller"
         type="cmd_vel_converter_node"
@@ -48,6 +48,7 @@
     <param name="topics/cmd_vel" value="/cf1/cmd_vel" />
 		</node>
 
+		-->
 
         <!-- 
     ===========================================================================
