@@ -12,13 +12,17 @@
 ============================================================================
 ============================================================================
 -->
-<group ns="cf1">
+<group ns="$(arg frame)">
 
 ============================================================================
 Start the server process that connects the CF to the ROS system
-<node pkg="crazyflie_driver" type="crazyflie_add" name="crazyflie_add" output="screen">
+<node pkg="crazyflie_driver"
+    type="crazyflie_add"
+    name="crazyflie_add"
+    output="screen"
+    required="true">
         <param name="uri" value="$(arg uri)" />
-        <param name="tf_prefix" value="cf1" />
+        <param name="tf_prefix" value="$(arg frame)" />
         <param name="enable_logging" value="True" />
         <param name="enable_logging_imu" value="False" />
         <param name="enable_logging_temperature" value="False" />
@@ -75,6 +79,6 @@ Bag recording
 - /ghost_trajectory: This is the requested trajectory pose (simulated)
 -->
 
-<node pkg="rosbag" name="record" type="record" args="-O /tmp/cf1_est /cf1/pose /cf1/logEstAttRPY "/>
+<node pkg="rosbag" name="record_cf" type="record" args="-O /tmp/cf1_est /cf1/pose /cf1/logEstAttRPY "/>
 
 </launch>

@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="vehicle_frame" default="cf1" />
+    <arg name="ip" default="192.168.1.198" />
+    <arg name="port" default="3883" />
+    <arg name="uri" default="radio://0/100/2M/E7E7E7E7E7" />
+
+<!-- ===================================== -->
+<!-- Launch the data aquisition components -->
+<include file="$(find demo_launchers)/launch/datastream_launch.launch">
+    <arg name="vehicle_frame" value="$(arg vehicle_frame)" />
+    <arg name="ip" value="$(arg ip)" />
+    <arg name="port" value="$(arg port)" />
+</include>
+
+<!-- ======================================== -->
+<!-- Launch the controller/guidance componets -->
+<include file="$(find demo_launchers)/launch/commander_launch.launch">
+    <arg name="vehicle_frame" value="$(arg vehicle_frame)" />
+    <arg name="commander_id" value="cm1" />
+</include>
+
+</launch>
