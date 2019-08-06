@@ -53,7 +53,7 @@ bool CommanderInterface::Initialize(const ros::NodeHandle& n) {
         track_srv_ = nh.advertiseService("track_srv",
                         &CommanderInterface::track_callback, this);
 
-        // The Guidance is in the
+        // Connect to the service provided by the guidance node.
         guidance_clnt_ = ng.serviceClient<guidance::GenTrackTrajectory>(
                                 "gen_TrackTrajectory");
 
@@ -99,11 +99,10 @@ bool CommanderInterface::land_callback(
         guidance::GenTrackTrajectory srv;
 
         boost::array<float, 3> v{{0.0, 0.0, 0.0}};
-
-        srv.request.ref = "Absolute";
-        srv.request.target_v = v;
-        srv.request.target_a = v;
-        v[2] = req.height;
+        
+        // Relative request to the current point
+        srv.request.ref = "Relative";
+        v[2] = -10.0; // Dirty, but it will work in practice
         srv.request.target_p = v; 
 
         srv.request.tg_time = req.duration;
