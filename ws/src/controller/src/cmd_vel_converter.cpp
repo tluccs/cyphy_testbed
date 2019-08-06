@@ -44,64 +44,87 @@
 
 namespace crazyflie_control_merger {
 
-// Initialize this node.
-bool CmdVelConverter::Initialize(const ros::NodeHandle& n) {
-  name_ = ros::names::append(n.getNamespace(), "cmd_vel_converter");
+  // Initialize this node.
+  bool CmdVelConverter::Initialize(const ros::NodeHandle& n) {
+    name_ = ros::names::append(n.getNamespace(), "cmd_vel_converter");
 
-  if (!LoadParameters(n)) {
-    ROS_ERROR("%s: Failed to load parameters.", name_.c_str());
-    return false;
+    if (!LoadParameters(n)) {
+      ROS_ERROR("%s: Failed to load parameters.", name_.c_str());
+      return false;
+    }
+
+    if (!RegisterCallbacks(n)) {
+      ROS_ERROR("%s: Failed to register callbacks.", name_.c_str());
+      return false;
+    }
+
+    time_last_ctrl = ros::Time::now().toSec();
+    reset_counter = 5;
+
+    initialized_ = true;
+    return true;
   }
 
-  if (!RegisterCallbacks(n)) {
-    ROS_ERROR("%s: Failed to register callbacks.", name_.c_str());
-    return false;
+  // Load parameters.
+  bool CmdVelConverter::LoadParameters(const ros::NodeHandle& n) {
+    ros::NodeHandle nl(n);
+
+    // Topics.
+    if (!nl.getParam("topics/control", control_topic_)) return false;
+    if (!nl.getParam("topics/cmd_vel", cmd_vel_topic_)) return false;
+
+    return true;
   }
 
-  initialized_ = true;
-  return true;
-}
+  // Register callbacks.
+  bool CmdVelConverter::RegisterCallbacks(const ros::NodeHandle& n) {
+    ros::NodeHandle nl(n);
 
-// Load parameters.
-bool CmdVelConverter::LoadParameters(const ros::NodeHandle& n) {
-  ros::NodeHandle nl(n);
+    // Subscribers.
+    control_sub_ = nl.subscribe(
+        control_topic_.c_str(), 1, &CmdVelConverter::ControlCallback, this);
 
-  // Topics.
-  if (!nl.getParam("topics/control", control_topic_)) return false;
-  if (!nl.getParam("topics/cmd_vel", cmd_vel_topic_)) return false;
+    // Publishers.
+    cmd_vel_pub_ = nl.advertise<geometry_msgs::Twist>(
+        cmd_vel_topic_.c_str(), 1, false);
 
-  return true;
-}
+    return true;
+  }
+  // Process an incoming reference point.
+  void CmdVelConverter::
+    ControlCallback(const testbed_msgs::ControlStamped::ConstPtr& msg) {
+      geometry_msgs::Twist twist;
+    
+      // Measure the time from the last command
+      double now = ros::Time::now().toSec();
+      double deltaT = now - time_last_ctrl; // Time from the last received control.
+      time_last_ctrl = now;   
 
-// Register callbacks.
-bool CmdVelConverter::RegisterCallbacks(const ros::NodeHandle& n) {
-  ros::NodeHandle nl(n);
+      if (deltaT > 0.5) {
+        // To remove the lock from the thrust I need to send a setpoint and 
+        // have the thrust commad start with a zero.
+        reset_counter = 5;
+      }
 
-  // Subscribers.
-  control_sub_ = nl.subscribe(
-    control_topic_.c_str(), 1, &CmdVelConverter::ControlCallback, this);
+      if (reset_counter > 0) {
+        reset_counter--;
+        twist.linear.y = 0;
+        twist.linear.x = 0;
+        twist.angular.z = 0;
+        twist.linear.z = 0; 
+      } else {
+        // Fill in the Twist, following the conversion process in the
+        // crazyflie_server.cpp file function named "cmdVelChanged()".
+        // NOTE! Some dimensions have been flipped and/or converted to degrees
+        // in order to conform to expectations of the crazyflie firmware.
+        twist.linear.y = crazyflie_utils::angles::RadiansToDegrees(msg->control.roll);
+        twist.linear.x = crazyflie_utils::angles::RadiansToDegrees(msg->control.pitch);
+        twist.angular.z = -crazyflie_utils::angles::RadiansToDegrees(msg->control.yaw_dot);
+        twist.linear.z = crazyflie_utils::pwm::ThrustToPwmDouble(msg->control.thrust);
+      }
 
-  // Publishers.
-  cmd_vel_pub_ = nl.advertise<geometry_msgs::Twist>(
-    cmd_vel_topic_.c_str(), 1, false);
 
-  return true;
-}
-// Process an incoming reference point.
-void CmdVelConverter::
-ControlCallback(const testbed_msgs::ControlStamped::ConstPtr& msg) {
-  geometry_msgs::Twist twist;
-
-  // Fill in the Twist, following the conversion process in the
-  // crazyflie_server.cpp file function named "cmdVelChanged()".
-  // NOTE! Some dimensions have been flipped and/or converted to degrees
-  // in order to conform to expectations of the crazyflie firmware.
-  twist.linear.y = crazyflie_utils::angles::RadiansToDegrees(msg->control.roll);
-  twist.linear.x = crazyflie_utils::angles::RadiansToDegrees(msg->control.pitch);
-  twist.angular.z = -crazyflie_utils::angles::RadiansToDegrees(msg->control.yaw_dot);
-  twist.linear.z = crazyflie_utils::pwm::ThrustToPwmDouble(msg->control.thrust);
-
-  cmd_vel_pub_.publish(twist);
-}
+      cmd_vel_pub_.publish(twist);
+    }
 
 } //\namespace crazyflie_control_merger

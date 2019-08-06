@@ -84,6 +84,9 @@ private:
   // Naming and initialization.
   bool initialized_;
   std::string name_;
+
+  double time_last_ctrl;
+  int reset_counter;
 }; //\class NoYawMerger
 
 } //\crazyflie_control_merger
