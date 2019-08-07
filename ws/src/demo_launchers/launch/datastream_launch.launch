@@ -18,7 +18,7 @@ the CF.
         <rosparam subst_value="true">
                 server: $(arg ip)
                 port: $(arg port)
-                update_frequency: 360.0
+                update_frequency: 500.0
                 frame_id: /world
                 child_frame_id: $(arg vehicle_frame)
                 use_server_time: true
