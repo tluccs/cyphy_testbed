@@ -19,8 +19,7 @@ Start the server process that connects the CF to the ROS system
 <node pkg="crazyflie_driver"
     type="crazyflie_add"
     name="crazyflie_add"
-    output="screen"
-    required="true">
+    output="screen">
         <param name="uri" value="$(arg uri)" />
         <param name="tf_prefix" value="$(arg frame)" />
         <param name="enable_logging" value="True" />
