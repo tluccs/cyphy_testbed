@@ -20,4 +20,11 @@
     <arg name="commander_id" value="cm1" />
 </include>
 
+<!-- ====================================================== -->
+<!-- Recording the performance of the system
+     external_odom: Ground truth
+     setpoint: Demanded setpoin
+     pose: Estimated Pose
+-->
+<node pkg="rosbag" name="record_perf" type="record" args="-O /tmp/cf1_perf /vrpn_client_node/cf1/pose /cf1/external_odom /cf1/setpoint /cf1/pose" /> 
 </launch>
