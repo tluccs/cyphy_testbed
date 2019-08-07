@@ -22,10 +22,12 @@ This is the package providing the services to communicate with the *Crazyflie* d
 This packages contains the *ROS* launch files for starting the system components.
 Currently, there are
     1. "cf\_server.launch": Starts the nodes to communicate with the *Crazyflie*.
-    2. "commander\_launch": Starts the Commander node.
-    3. "datastream\_lauch": Starts the acquisition of data from the input sources, such as *Optitrack*. The launch file starts also an instance of *rViz* to visualize the vehicle/trajectory/estimation in a virtual environment.
-    4. "ext\_control": Starts the offboard controller node.
-    5. "test\_launch": ...
+    2. "commander_launch": Starts the Commander node and the Guidance node.
+    3. "controller_launch": Start the remote Controller node.
+    4. "datastream_lauch": Starts the acquisition of data from the input sources, such as *Optitrack*. The launch file starts also an instance of *rViz* to visualize the vehicle/trajectory/estimation in a virtual environment.
+    5. "demo_core": Start the datastream and the commander parts of the framework.
+    6. "ext_control": Starts the offboard controller node.
+    7. "test_launch": ...
 5. **guidance**
 This package provides the guidance for the drone, that is, given a command and the current status of the drone, it generates the references to achieve the task. 
 6. **monitors**
