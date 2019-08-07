@@ -163,9 +163,9 @@ bool StateAggregator::LoadParameters(const ros::NodeHandle& n) {
 
 bool StateAggregator::RegisterCallbacks(const ros::NodeHandle& n) {
         ros::NodeHandle nl(n);
-        inchannel1_= nl.subscribe(vrpn_topic_.c_str(), 10, 
+        inchannel1_= nl.subscribe(vrpn_topic_.c_str(), 15, 
                         &StateAggregator::onNewPose, this, 
-                        ros::TransportHints().tcpNoDelay(true));
+                        ros::TransportHints().tcpNoDelay());
         return true;
 }
 
@@ -246,10 +246,11 @@ void StateAggregator::onNewPose(
         // Convert to euler
         //euler_ = q_pf_.toRotationMatrix().eulerAngles(0, 1, 2);
 
-        euler_(0) =  atan2(2*q_pf_.y() * q_pf_.z() + 2*q_pf_.w()*q_pf_.x(), 
-                        q_pf_.z()*q_pf_.z() - q_pf_.y()*q_pf_.y() - q_pf_.x()*q_pf_.x() + q_pf_.w()*q_pf_.w());
-        euler_(1) = -asin(2*q_pf_.w()*q_pf_.y() - 2*q_pf_.x()*q_pf_.z());
-        euler_(2) =  atan2(2*q_pf_.x()*q_pf_.y() + 2*q_pf_.z()*q_pf_.w(), q_pf_.x()*q_pf_.x() + q_pf_.w()*q_pf_.w() - q_pf_.z()*q_pf_.z() - q_pf_.y()*q_pf_.y());
+        euler_(0) =  atan2(2.0 * q_pf_.y() * q_pf_.z() + 2.0 * q_pf_.w() * q_pf_.x(), 
+                1.0 - 2.0 * (q_pf_.x() * q_pf_.x() + q_pf_.y() * q_pf_.y()));
+        euler_(1) = asin(2.0 * q_pf_.w()*q_pf_.y() - 2.0 * q_pf_.x()*q_pf_.z());
+        euler_(2) =  atan2(2.0 * q_pf_.x() * q_pf_.y() + 2.0 * q_pf_.z() * q_pf_.w(),
+                1.0 - 2.0 * (q_pf_.y() * q_pf_.y() + q_pf_.z() * q_pf_.z()));
 
         // Pose: Position + Orientation
         //ext_pose_msg_.header.stamp = msg->header.stamp;
