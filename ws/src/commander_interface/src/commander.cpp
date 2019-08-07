@@ -149,6 +149,7 @@ bool CommanderInterface::track_callback(
         srv.request.target_v = req.target_v;
         srv.request.target_a = req.target_a;
         srv.request.tg_time = req.duration;
+        srv.request.ref = "Absolute";
 
         if (guidance_clnt_.call(srv))
                 res.ack = "Roger!";
