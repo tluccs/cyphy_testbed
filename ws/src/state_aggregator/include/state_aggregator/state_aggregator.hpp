@@ -77,6 +77,7 @@ class StateAggregator {
 
                 // ===========================================================
                 // Helper variables
+                int filter_order_;
                 Eigen::Vector3d p_;
                 Eigen::Vector3d p_pf_;
                 Eigen::Vector3d p_old_;

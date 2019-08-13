@@ -45,7 +45,8 @@ sensors and provides an estimator of the drone state.
         <param name="topics/out_ext_pose_rpy_topic" value="external_pose_rpy" />
         <param name="topics/out_ext_odom_topic" value="external_odom" />
 
-        <param name="valpha" value="0.8" type='double' />
+        <param name="valpha" value="0.9" type='double' />
+        <param name="filt_order" value="2" type="int" />
         <param name="qdalpha" value="0.9" type='double' />
     	<param name="time_delay" value="0.0" type='double' />
 </node>
