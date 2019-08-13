@@ -123,6 +123,7 @@ bool CommanderInterface::goto_callback(
 
         boost::array<float, 3> v{{0.0, 0.0, 0.0}};
 
+        srv.request.ref = "Absolute";
         srv.request.target_v = v;
         srv.request.target_a = v;
 
