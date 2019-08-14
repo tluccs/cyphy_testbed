@@ -54,6 +54,7 @@ bool CommanderInterface::Initialize(const ros::NodeHandle& n) {
                         &CommanderInterface::track_callback, this);
 
         // Connect to the service provided by the guidance node.
+        // That node will create the guidance (produce reference points) for accomplishing the task
         guidance_clnt_ = ng.serviceClient<guidance::GenTrackTrajectory>(
                                 "gen_TrackTrajectory");
 
