@@ -24,7 +24,15 @@ Where X[i][j] is the requirement for the i-derivative of the j-th waypoint.
 """
 import numpy as np
 import scipy.linalg as linalg
+import csv
 
+def null_space(A, atol=1e-13, rtol=0):
+    A = np.atleast_2d(A)
+    u, s, vh = linalg.svd(A)
+    tol = max(atol, rtol * s[0])
+    nnz = (s >= tol).sum()
+    ns = vh[nnz:].conj().T
+    return ns
 
 ## =================================================
 ## =================================================
@@ -51,11 +59,43 @@ def interpolPolys(X, deg, T, is_abstime):
 
     """
     nCoeff = deg + 1
+
+    nWp = X.shape[1]       # Number of waypoints
+
     [A, b] = buildInterpolationProblem(X, deg, T, is_abstime)
 
-    nullx = np.zeros((3,3)) #linalg.null_space(A)
+    nullx = null_space(A)
+    
 
-    [sol, res, _, _] = linalg.lstsq(A, b)
+    # Define the time vector
+    Dt = np.zeros((nWp - 1), dtype=float)
+
+    if (is_abstime):
+        for i in range(len(T) - 1):
+            Dt[i] = T[i+1] - T[i]
+    else:
+        Dt = T
+
+    Q = genQ(Dt, deg, 4)
+    # M1x = F^T * Q * F
+    M1x = (np.matmul(np.matmul(nullx.transpose(), Q), nullx))
+    # M2x = - M1x * F^T * Q
+    M2x = -np.matmul(np.matmul(np.linalg.inv(M1x), nullx.transpose()), Q)
+
+    # One solution 
+    # I select the minimum norm solution to the problem
+    inv_AA_T = np.linalg.inv( np.matmul(A, A.transpose()))
+    pseudoInv =  np.matmul(A.transpose(), inv_AA_T) 
+    sol_min_norm = np.matmul(pseudoInv, b)
+    res = np.matmul(A, sol_min_norm)
+
+    #[sol, res, _, _] = linalg.lstsq(A, b)
+
+    vx = np.matmul(M2x, sol_min_norm)
+
+    # Interpolate (with sol_min_norm) and minimize the snap 
+    # with the free variables (vx)
+    sol = sol_min_norm + np.matmul(nullx, vx)
 
     npolys = int(len(sol) / nCoeff)
 
@@ -156,6 +196,92 @@ def buildInterpolationProblem(X, deg, T, is_abstime = True):
 
     return (A,b)
 
+
+## =================================================
+## =================================================
+def genQ(Dt, deg, der):
+    """
+    The time vector has a length of deg + 1, thus
+    the Q matrix is (deg + 1) x (deg + 1).
+    Minimizing the der means evaluating the der-th derivative,
+    of the polynomial. The first der element of the 
+    differentiated time vector are 0.
+    The Q matrix for the single polynomial is then different
+    from zero in the element with i and j > der.
+
+    The integral is computed adding t / (index_i + index_y + 1) 
+    to the outer product matrix.
+
+    """
+    num_poly = len(Dt)
+
+    sizeQ = (num_poly * (deg + 1), num_poly * (deg + 1))
+    Q = np.zeros(sizeQ, dtype=float)
+
+    if (deg < der):
+        print("Unable to minimize for the snap (Polynomial degree too low)")
+        return Q    
+   
+    q = []
+    for k in range(num_poly):
+        # Time instant
+        t_ = t_vec(Dt[k], deg)
+        # Derivative of the time vector
+        T = polyder(t_, der)
+        TT = np.outer(T, T);
+        # Compute the integral
+        for i in range(deg - der):
+            for j in range(deg - der):
+                TT[i + der][j + der] = (TT[i + der][j + der]) * Dt[k]/(i + j + 1)
+        
+        Q[deg * k: deg * (k  + 1) + 1, deg * k: deg * (k  + 1) + 1] = TT 
+
+    return Q
+
+
+
+## =================================================
+## =================================================
+def genQ_snap(Dt, deg):
+    """
+    The time vector has a length of deg + 1, thus
+    the Q matrix is (deg + 1) x (deg + 1).
+    Minimizing the snap means evaluating the 4th derivative,
+    of the polynomial. The first 4 element of the 
+    differentiated time vector are 0.
+    The Q matrix for the single polynomial is then different
+    from zero in the element with i and j > 3.
+
+    The integral is computed adding t / (index_i + index_y + 1) 
+    to the outer product matrix.
+
+    """
+    num_poly = len(Dt)
+
+    sizeQ = (num_poly * (deg + 1), num_poly * (deg + 1))
+    Q = np.zeros(sizeQ, dtype=float)
+
+    if (deg < 4):
+        print("Unable to minimize for the snap (Polynomial degree too low)")
+        return Q    
+   
+    q = []
+    for k in range(num_poly):
+        # Time instant
+        t_ = t_vec(Dt[k], deg)
+        # Derivative of the time vector
+        T = polyder(t_, 4)
+        TT = np.outer(T, T);
+        # Compute the integral
+        for i in range(deg - 4):
+            for j in range(deg - 4):
+                TT[i + 4][j + 4] = (TT[i + 4][j + 4]) * Dt[k]/(i + j + 1)
+        
+        Q[deg * k: deg * (k  + 1) + 1, deg * k: deg * (k  + 1) + 1] = TT 
+
+    return Q
+
+
 ## =================================================
 ## =================================================
 def pp2file(Dt, polysX, polysY, polysZ, polysW, filename):
@@ -173,23 +299,79 @@ def pp2file(Dt, polysX, polysY, polysZ, polysW, filename):
     nPieces = polysX.shape[0]
     pollen = polysX.shape[1]
 
-    f.write('\n')
+    f.write('Pieces: ' + str(nPieces) + ', ' + 'Ncoef: ' + str(pollen) + '\n')
     for i in range(nPieces):
         f.write('{:5f}, '.format(Dt[i]))
         for j in range(pollen):
             f.write('{:5f}, '.format(polysX[i,j]))
         for j in range(pollen):
-            f.write('{:5f}, '.format(polysY[i,j]))
+            f.write('{:5f}, '.format(polysX[i,j]))
         for j in range(pollen):
-            f.write('{:5f}, '.format(polysZ[i,j]))
+            f.write('{:5f}, '.format(polysX[i,j]))
         for j in range(pollen):
-            f.write('{:5f}, '.format(polysW[i,j]))
+            if (j == pollen - 1):
+                f.write('{:5f}'.format(polysX[i,j]))
+            else:
+                f.write('{:5f}, '.format(polysX[i,j]))
         f.write('\n')
 
     f.close()
 
-    print("Polynomial coefficients wrote to file: " + filename)
+def ppFromfile(filename):
+    """
+    Read the polynomial coefficients from a file 
+    The file will have a row for each piece and the row has the
+    following format:
 
+    Time_interval x_poly_coeff y_poly_coeff z_poly_coeff w_p ly_coeff
+
+    """
+    csvfile = open(filename, "r")
+
+    reader = csv.reader(csvfile, delimiter=',') 
+    
+    data = [];
+    for row in reader:
+        data.append(row)
+
+    # There is an extra initial row.
+    nPieces = len(data) - 1
+
+    # The first element is the time
+    pollen = int(len(data[1]) - 1)//4
+
+    print("Loading polynomial from file...")
+    print("Num Pieces: " + str(nPieces))
+    print("Num Coeff: " + str(pollen))
+
+    polysX = np.zeros((nPieces, pollen), dtype=float)
+    polysY = np.zeros((nPieces, pollen), dtype=float)
+    polysZ = np.zeros((nPieces, pollen), dtype=float)
+    polysW = np.zeros((nPieces, pollen), dtype=float)
+
+    Dt = np.zeros((nPieces), dtype=float)
+    for i in range(nPieces):
+        Dt[i] = data[i + 1][0]
+        for j in range(pollen):
+            polysX[i,j] = data[i + 1][j + 1]
+            polysY[i,j] = data[i + 1][j + 1 + 8] 
+            polysZ[i,j] = data[i + 1][j + 1 + 16]
+            polysW[i,j] = data[i + 1][j + 1 + 24]
+
+    print("Imported DT:")
+    print(Dt)
+    print("Imported polyX: \n")
+    print(polysX)
+    print("Imported polyY: \n")
+    print(polysY)
+    print("Imported polyZ: \n")
+    print(polysZ)
+    print("Imported polyW: \n")
+    print(polysW)
+
+    csvfile.close()
+
+    return (Dt, polysX, polysY, polysZ, polysW) 
 
 ######################################################################
 ## Helper functions for polynomial generation
