@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, The Regents of the University of California (Regents).
+ * Copyright (c) 2017, The Regents of the University of California (Regents)
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -135,6 +135,7 @@ class MellingerController {
   double i_error_m_z;
 
   Vector3d sp_pos_, sp_vel_, sp_acc_, sp_r_pos_, sp_r_vel_, sp_r_acc_;
+  Vector3d sp_brates_;
   Vector3d pos_, vel_, r_pos_, r_vel_;
   Eigen::Quaterniond quat_;
 

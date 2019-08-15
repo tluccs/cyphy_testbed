@@ -108,6 +108,7 @@ void MellingerController::Reset(void)
   sp_r_pos_ = Vector3d::Zero();
   sp_r_vel_ = Vector3d::Zero();
   sp_r_acc_ = Vector3d::Zero();
+  sp_brates_ = Vector3d::Zero(); 
   
   pos_ = Vector3d::Zero();
   vel_ = Vector3d::Zero();
@@ -145,6 +146,10 @@ void MellingerController::SetpointCallback(
   sp_roll_ = msg->rpy.x;
   sp_pitch_ = msg->rpy.y;
   sp_yaw_ = msg->rpy.z;
+
+  sp_brates_(0) = msg->brates.x;
+  sp_brates_(1) = msg->brates.y;
+  sp_brates_(2) = msg->brates.z;
 
   received_setpoint_ = true;
 }
@@ -258,6 +263,17 @@ void MellingerController::StateCallback(
   control_msg.control.pitch = -std::asin(Rout(2,0));
   control_msg.control.yaw_dot = -10*std::atan2(R(1,0),R(0,0)); //std::atan2(Rdes(1,0),Rdes(0,0));
   control_msg.control.thrust = current_thrust;
+
+  // In case I need to push some saturation to the requested pitch/roll
+  /*
+  if (fabs(control_msg.control.roll) > 0.65) { 
+      control_msg.control.roll = control_msg.control.roll > 0.0 ? 0.65 : -0.65; 
+  }
+
+  if (fabs(control_msg.control.pitch) > 0.65) { 
+      control_msg.control.pitch = control_msg.control.pitch > 0.0 ? 0.65 : -0.65; 
+  }
+  */
 
   control_pub_.publish(control_msg);
 }
