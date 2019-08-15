@@ -7,21 +7,21 @@
   <arg name="topics/control_topic" default="control" />
 
   <!-- Control parameters. -->
-  <arg name="g_vehicleMass" value="0.032" />
+  <arg name="g_vehicleMass" value="0.034" />
   <arg name="massThrust" value="132000" />
 
-  <arg name="kp_xy" value="5" />
-  <arg name="kd_xy" value="2" />
-  <arg name="ki_xy" value="0.2" />
-  <arg name="i_range_xy" value="2.0" />
+  <arg name="kp_xy" value="8.8" />
+  <arg name="kd_xy" value="1.9" />
+  <arg name="ki_xy" value="0.0" />
+  <arg name="i_range_xy" value="0.0" />
 
-  <arg name="kp_z" value="5" />
-  <arg name="kd_z" value="2" />
+  <arg name="kp_z" value="8.0" />
+  <arg name="kd_z" value="2.0" />
   <arg name="ki_z" value="0.2" />
-  <arg name="i_range_z" value="2.0" />
+  <arg name="i_range_z" value="0.1" />
   
-  <arg name="kR_xy" value="70000" />
-  <arg name="kw_xy" value="20000" />
+  <arg name="kR_xy" value="160000" />
+  <arg name="kw_xy" value="15000" />
   <arg name="ki_m_xy" value="0.0" />
   <arg name="i_range_m_xy" value="1.0" />
   
