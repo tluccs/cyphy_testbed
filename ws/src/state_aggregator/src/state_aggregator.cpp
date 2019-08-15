@@ -263,11 +263,14 @@ void StateAggregator::onNewPose(
 
                     // Position Filtering
                     Eigen::Vector3d p_pred = p_old_ + vel_ * dt;
+                    healthy_vector(p_pred);
+
                     Eigen::Vector3d innov_p = (p_ - p_pred);
                     p_ = p_pred + G_p * innov_p;
 
                     // Velocity Filtering
-                    vel_ = vel_ + H_p * (innov_p / dt);
+                    if (dt > 0.0001)
+                        vel_ = vel_ + H_p * (innov_p / dt);
 
                     // Reset the velocity vector in case of NaN
                     if (!healthy_vector(vel_)) {
