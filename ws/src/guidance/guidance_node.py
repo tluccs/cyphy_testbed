@@ -21,6 +21,8 @@ from guidance.srv import GenTrackTrajectory
 
 import trjgen.class_pwpoly as pw
 import trjgen.class_trajectory as trj
+import trjgen.trjgen_helpers as trjh
+import trjgen.trjgen_core as tj
 
 current_odometry = Odometry()
 current_target = PoseStamped()
@@ -59,20 +61,16 @@ def quatMult(p, q):
 
 
 # Create the knots vector
-def updateKnots(t_impact, Trec, dt):
-    t1 = t_impact - dt
-    t2 = t_impact + dt
-    t3 = t_impact + dt + Trec
+def updateKnots(t_impact, Trec):
+    t2 = t_impact + Trec
     
     # Check for queer situations
-    if (t1 < 0.0):
-        t1 = 0.0
+    if (t_impact < 0.0):
+        t_impact = 0.0
         
     knots = np.array([0,
-                      t1,
                       t_impact,
-                      t2,
-                      t3]
+                      t2]
                     )
     return knots
 
@@ -85,49 +83,42 @@ def getInterpolMatrices(tg, tg_q, yaw, v_norm, a_norm, dt):
     a_dem = a_norm * tg_Zi - np.array([0.0, 0.0, 9.81])
     v_dem = - v_norm * tg_Zi
 
-    v_aft = v_dem - a_dem * dt
-    
     # Compute the waypoints near the target
-    p_pre = tg - v_dem * dt 
-    p_aft = tg + v_dem * dt  + 0.5 * (a_dem * dt**2)
-    p_end = p_aft + v_aft * dt
+    p_end = tg + v_dem * dt
     
-    rospy.loginfo("Pre target = " +  str(p_pre))
-    rospy.loginfo("Target = " +  str(tg))
+    rospy.loginfo("Rel Target = " +  str(tg))
     rospy.loginfo("Vel = " + str(v_dem))
     rospy.loginfo("Acc = " +  str(a_dem))
-    rospy.loginfo("Post target pos = " + str(p_aft))
-    rospy.loginfo("Post target vel = " + str(v_aft))
-    rospy.loginfo("Recoil point = " + str(p_end))
+    rospy.loginfo("Rel Recoil point = " + str(p_end))
 
     #   Relative waypoint data
     #   Start   PreTarget   Target      PostTarget  End
     X = np.array([
-        [ 0,   p_pre[0],    tg[0],   p_aft[0],   p_end[0]],
-        [ 0,   np.nan,      v_dem[0],   np.nan,     0.0],
-        [ 0,   np.nan,      a_dem[0],   np.nan,     0.0],
-        [ 0,   np.nan,      np.nan,     np.nan,     0.0]
+        [ 0,   tg[0],      p_end[0]],
+        [ 0,   v_dem[0],   0.0],
+        [ 0,   a_dem[0],   0.0],
+        [ 0,   np.nan,     0.0]
     ])
 
     Y = np.array([
-        [ 0,   p_pre[1],    tg[1],  p_aft[1],   p_end[1]],
-        [ 0,   np.nan,      v_dem[1],   np.nan,     0.0],
-        [ 0,   np.nan,      a_dem[1],   np.nan,     0.0],
-        [ 0,   np.nan,      np.nan,     np.nan,     0.0]
+        [ 0,   tg[1],      p_end[1]],
+        [ 0,   v_dem[1],   0.0],
+        [ 0,   a_dem[1],   0.0],
+        [ 0,   np.nan,     0.0]
     ])
 
     Z = np.array([
-        [ 0,   p_pre[2],    tg[2],  p_aft[2],   p_end[2]],
-        [ 0,   np.nan,      v_dem[2],   np.nan,     0.0],
-        [ 0,   np.nan,      a_dem[2],   np.nan,     0.0],
-        [ 0,   np.nan,      np.nan,     np.nan,     0.0]
+        [ 0,   tg[2],      p_end[2]],
+        [ 0,   v_dem[2],   0.0],
+        [ 0,   a_dem[2],   0.0],
+        [ 0,   np.nan,     0.0]
     ])
 
     W = np.array([
-        [ 0,   np.nan,   yaw,    np.nan,     0.0],
-        [ 0,   np.nan,   np.nan,    np.nan,     0.0],
-        [ 0,   np.nan,   np.nan,    np.nan,     0.0],
-        [ 0,   np.nan,   np.nan,    np.nan,     0.0]
+        [ 0,   yaw,       0.0],
+        [ 0,   np.nan,    0.0],
+        [ 0,   np.nan,    0.0],
+        [ 0,   np.nan,    0.0]
     ])
     
     return (X, Y, Z, W)
@@ -182,12 +173,11 @@ def handle_genImpTrjAuto(req):
 
     # Generate the knots vector
     t_impact = req.t2go
-    Trec = 1.0
-    dt = 0.7
-    knots = updateKnots(t_impact, Trec, dt)
+    Trec = 4.0
+    knots = updateKnots(t_impact, Trec)
     # Generate the interpolation matrices
-    (X, Y, Z, W) = getInterpolMatrices(tg_pos - start_pos, tg_q, tg_yaw - start_yaw, v_norm, a_norm, dt)
-
+    (X, Y, Z, W) = getInterpolMatrices(tg_pos - start_pos, tg_q, tg_yaw - start_yaw, v_norm, a_norm, Trec)
+ 
     # Generate the polynomial
     ppx = pw.PwPoly(X, knots, ndeg)
     ppy = pw.PwPoly(Y, knots, ndeg)
@@ -203,6 +193,12 @@ def handle_genImpTrjAuto(req):
     my_traj.writeTofile(Dt, '/tmp/toTarget.csv')
 
     t = Thread(target=rep_trajectory, args=(my_traj, start_pos, max(knots), frequency)).start()
+
+#    (Dt, polysX, polysY, polysZ, polysW) = tj.ppFromfile('/tmp/toTarget.csv')
+#
+#    my_traj = trj.Trajectory(polysX, polysY, polysZ, polysW)
+#    t = Thread(target=rep_trajectory, args=(my_traj,start_pos, max(knots), frequency)).start()
+
     return True
 
 
@@ -213,8 +209,8 @@ def handle_genImpTrj(req):
     tg = req.target
     t_impact = req.tg_time
      
-    Tmax = 3 * t_impact;
-    thrust_thr = 9.81 * vehicle_mass * 2.0
+    Tmax = 2 + t_impact;
+    thrust_thr = 9.81 * vehicle_mass * 1.5
 
     # Times (Absolute and intervals)
     knots = np.array([0, t_impact, Tmax]) # One second each piece
@@ -278,6 +274,7 @@ def handle_genImpTrj(req):
     my_traj.writeTofile(Dt, '/tmp/toTarget.csv')
 
     t = Thread(target=rep_trajectory, args=(my_traj,start_pos, Tmax, frequency)).start()
+ 
     return True
 
 
@@ -303,7 +300,7 @@ def handle_genTrackTrj(req):
     if (req.ref == "Absolute"):
         tg_p = req.target_p
         tg_prel = tg_p - start_pos
-    else:
+    elif (req.ref == "Relative"):
         tg_prel = req.target_p
         # Detect if you are requesting a landing
         if ((start_pos[2] + tg_prel[2]) <= 0):
@@ -314,10 +311,12 @@ def handle_genTrackTrj(req):
                 t_impact = (start_pos[2]/0.3)
             tg_v = np.zeros((3))
             tg_a = np.zeros((3))
-    
+    else:
+        rospy.loginfo("Error passing reference to guidance")
+            
     # Times (Absolute and intervals)
     knots = np.array([0, t_impact]) # One second each piece
-    Dt = knots[1:len(knots)] - knots[0:len(knots)-1]
+    Dt = knots[1:len(knots)] - knots[0:len(knots) - 1]
 
     # Polynomial characteristic:  order
     ndeg = 7
@@ -431,6 +430,9 @@ def handle_genGotoTrj(req):
 def rep_trajectory(traj, start_position, timeSpan, freq):
     global ctrl_setpoint_pub
 
+    mass = 0.032;
+    thr_lim = 9.81 * mass * 1.5
+
     r = rospy.Rate(freq)
 
     start_time = rospy.get_time() 
@@ -444,7 +446,7 @@ def rep_trajectory(traj, start_position, timeSpan, freq):
     # Publishing Loop
     while (curr_time < end_time):
         # Evaluate the trajectory
-        (X, Y, Z, W, R) = traj.eval(curr_time - start_time, [0, 1, 2])
+        (X, Y, Z, W, R, Omega) = traj.eval(curr_time - start_time, [0, 1, 2, 3])
 
         msg.p.x = X[0] + start_position[0]
         msg.p.y = Y[0] + start_position[1]
@@ -458,12 +460,24 @@ def rep_trajectory(traj, start_position, timeSpan, freq):
         msg.a.y = Y[2]
         msg.a.z = Z[2]
 
+        # Evaluate the thrust margin of the trjectory at the current time
+        (ffthrust, available_thrust) = trjh.getlimits(X, Y, Z, 
+                mass, thr_lim)
+
+        if (available_thrust < 0):
+            rospy.loginfo("Exceding thrust limits!!")
+            rospy.loginfo("\t" + str(available_thrust))
+
         # Conver the Rotation matrix to euler angles
         (roll, pitch, yaw) = euler_from_matrix(R)
 
         msg.rpy.x = roll
         msg.rpy.y = pitch
         msg.rpy.z = yaw
+
+        msg.brates.x = Omega[0]
+        msg.brates.y = Omega[1]
+        msg.brates.z = Omega[2]
  
         # Pubblish the evaluated trajectory
         ctrl_setpoint_pub.publish(msg)
