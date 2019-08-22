@@ -13,7 +13,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib
 from matplotlib import pyplot as plt
 
-matplotlib.use('qt5agg')
+#matplotlib.use('qt5agg')
 
 ## =================================================
 ## =================================================
