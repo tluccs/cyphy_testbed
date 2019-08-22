@@ -14,7 +14,6 @@ from nav_msgs.msg import Odometry
 from testbed_msgs.msg import ControlSetpoint 
 from geometry_msgs.msg import PoseStamped
 
-from guidance.srv import GenImpTrajectory
 from guidance.srv import GenGoToTrajectory
 from guidance.srv import GenImpTrajectoryAuto
 from guidance.srv import GenTrackTrajectory
@@ -24,104 +23,10 @@ import trjgen.class_trajectory as trj
 import trjgen.trjgen_helpers as trjh
 import trjgen.trjgen_core as tj
 
+from guidance_helper import *
+
 current_odometry = Odometry()
 current_target = PoseStamped()
-
-
-############################   Helper functions
-
-def quat2yaw(q):
-    yaw = math.atan2(2.0 * (q[0] * q[3] + q[1] * q[2]),
-            1.0 - 2.0 * (q[2]**2 + q[3]**2))
-    return yaw
-
-def quat2Z(q):
-    Z = np.array([2.0 * (q[0]*q[2] + q[1]*q[3]),
-         2.0*(q[2]*q[3] - q[0]*q[1]),
-         1.0 - 2.0 * (q[1] * q[1] + q[2] * q[2])]) 
-    return Z
-
-def Mq(p):
-    M = np.array([
-        [p[0], -p[1], -p[2], -p[3]], 
-        [p[1], p[0], -p[3], p[2]],
-        [p[2], p[3], p[0], -p[1]],
-        [p[3], -p[2], p[1], p[0]]
-        ])
-    return M
-
-def quatMult(p, q):
-    M = np.array([
-        [p[0], -p[1], -p[2], -p[3]], 
-        [p[1], p[0], -p[3], p[2]],
-        [p[2], p[3], p[0], -p[1]],
-        [p[3], -p[2], p[1], p[0]]
-        ])
-    res = np.matmul(M, q)
-
-
-# Create the knots vector
-def updateKnots(t_impact, Trec):
-    t2 = t_impact + Trec
-    
-    # Check for queer situations
-    if (t_impact < 0.0):
-        t_impact = 0.0
-        
-    knots = np.array([0,
-                      t_impact,
-                      t2]
-                    )
-    return knots
-
-def getInterpolMatrices(tg, tg_q, yaw, v_norm, a_norm, dt):
-    
-    # Extract the coordinates of the target Z axis from the rotation matrix
-    # extressed with the quaternion
-    tg_Zi = quat2Z(tg_q)
-
-    a_dem = a_norm * tg_Zi - np.array([0.0, 0.0, 9.81])
-    v_dem = - v_norm * tg_Zi
-
-    # Compute the waypoints near the target
-    p_end = tg + v_dem * dt
-    
-    rospy.loginfo("Rel Target = " +  str(tg))
-    rospy.loginfo("Vel = " + str(v_dem))
-    rospy.loginfo("Acc = " +  str(a_dem))
-    rospy.loginfo("Rel Recoil point = " + str(p_end))
-
-    #   Relative waypoint data
-    #   Start   PreTarget   Target      PostTarget  End
-    X = np.array([
-        [ 0,   tg[0],      p_end[0]],
-        [ 0,   v_dem[0],   0.0],
-        [ 0,   a_dem[0],   0.0],
-        [ 0,   np.nan,     0.0]
-    ])
-
-    Y = np.array([
-        [ 0,   tg[1],      p_end[1]],
-        [ 0,   v_dem[1],   0.0],
-        [ 0,   a_dem[1],   0.0],
-        [ 0,   np.nan,     0.0]
-    ])
-
-    Z = np.array([
-        [ 0,   tg[2],      p_end[2]],
-        [ 0,   v_dem[2],   0.0],
-        [ 0,   a_dem[2],   0.0],
-        [ 0,   np.nan,     0.0]
-    ])
-
-    W = np.array([
-        [ 0,   yaw,       0.0],
-        [ 0,   np.nan,    0.0],
-        [ 0,   np.nan,    0.0],
-        [ 0,   np.nan,    0.0]
-    ])
-    
-    return (X, Y, Z, W)
 
 
 
@@ -138,7 +43,13 @@ def tg_callback(pose_msg):
 
 
 def handle_genImpTrjAuto(req):
+    """
+    Generate a impact trajectory just specifying the modulus of the 
+    acceleration, speed and the time to go.
     
+    It uses a 7 degree polynomial, such that the trajectory is also
+    uploadable on the vehicle for onboard tracking.
+    """
     ndeg = 7
     a_norm = req.a_norm
     v_norm = req.v_norm
@@ -171,13 +82,13 @@ def handle_genImpTrjAuto(req):
     rospy.loginfo("Vehicle = [" + str(start_pos[0]) + " " +
             str(start_pos[1]) + " " + str(start_pos[2]) + "]")
 
+    # Generate the interpolation matrices
+    (X, Y, Z, W, relknots) = genInterpolProblem(tg_pos - start_pos, tg_q, tg_yaw - start_yaw, v_norm, a_norm)
     # Generate the knots vector
     t_impact = req.t2go
-    Trec = 4.0
-    knots = updateKnots(t_impact, Trec)
-    # Generate the interpolation matrices
-    (X, Y, Z, W) = getInterpolMatrices(tg_pos - start_pos, tg_q, tg_yaw - start_yaw, v_norm, a_norm, Trec)
- 
+    knots = relknots + t_impact
+    knots = np.hstack(([0.0], knots))
+
     # Generate the polynomial
     ppx = pw.PwPoly(X, knots, ndeg)
     ppy = pw.PwPoly(Y, knots, ndeg)
@@ -201,81 +112,6 @@ def handle_genImpTrjAuto(req):
 
     return True
 
-
-
-def handle_genImpTrj(req):
-    start_pos = req.start_position
- 
-    tg = req.target
-    t_impact = req.tg_time
-     
-    Tmax = 2 + t_impact;
-    thrust_thr = 9.81 * vehicle_mass * 1.5
-
-    # Times (Absolute and intervals)
-    knots = np.array([0, t_impact, Tmax]) # One second each piece
-    Dt = knots[1:len(knots)] - knots[0:len(knots)-1]
-
-    # Polynomial characteristic:  order
-    ndeg = 7
-    nconstr = 4
-
-    # Speed at the target
-    Vt = 4.0
-    # Acceleration at the target
-    At = 9.0
-
-    tg_x = tg[0]
-    tg_y = tg[1]
-    tg_z = tg[2]
-
-    rospy.loginfo("On Target in " + str(t_impact) + " sec!")
-    rospy.loginfo("Target = [" + str(tg_x) + " " + str(tg_y) +
-            " " + str(tg_z) + "]")
-
-    X = np.array([
-        [ 0,     tg_x,    2.5 * tg_x],
-        [ 0,     -Vt * tg_x/abs(tg_x),   0.0],
-        [ 0,   -At * tg_x/abs(tg_x),     0.0],
-        [ 0,   np.nan,   0.0],
-        ])
-
-    Y = np.array([
-        [ 0,   tg_y,      0.0],
-        [ 0,   0.0,      0.0],
-        [ 0,   0.0,      0.0],
-        [ 0,   np.nan,   0.0],
-        ])
-
-    Z = np.array([
-        [ 0,   tg_z,      0.0],
-        [ 0,   0.0,      0.0],
-        [ 0,   0.0,      0.0],
-        [ 0,   np.nan,   0.0],
-        ])
-
-    W = np.array([
-        [ 0,   np.nan,      0.0],
-        [ 0,   np.nan,      0.0],
-        [ 0,   np.nan,      0.0],
-        [ 0,   np.nan,      0.0],
-        ])    
-
-
-    ppx = pw.PwPoly(X, knots, ndeg)
-    ppy = pw.PwPoly(Y, knots, ndeg)
-    ppz = pw.PwPoly(Z, knots, ndeg)
-    ppw = pw.PwPoly(W, knots, ndeg)
-
-    frequency = rospy.get_param('~freq', 30.0);
-
-    my_traj = trj.Trajectory(ppx, ppy, ppz, ppw)
-
-    my_traj.writeTofile(Dt, '/tmp/toTarget.csv')
-
-    t = Thread(target=rep_trajectory, args=(my_traj,start_pos, Tmax, frequency)).start()
- 
-    return True
 
 
 # Generate a tracking trajectory to reach an absolute waypoint 
@@ -424,6 +260,9 @@ def handle_genGotoTrj(req):
     t = Thread(target=rep_trajectory, 
             args=(my_traj, start_pos, t_impact, frequency)).start()
 
+    if (tg_v.all() == 0.0 and tg_a.all() == 0.0):
+        my_traj.writeTofile(Dt, '/tmp/goToTrajectory.csv')
+
     return True 
 
 
@@ -446,7 +285,7 @@ def rep_trajectory(traj, start_position, timeSpan, freq):
     # Publishing Loop
     while (curr_time < end_time):
         # Evaluate the trajectory
-        (X, Y, Z, W, R, Omega) = traj.eval(curr_time - start_time, [0, 1, 2, 3])
+        (X, Y, Z, W, R, Omega) = traj.eval((curr_time - start_time), [0, 1, 2, 3])
 
         msg.p.x = X[0] + start_position[0]
         msg.p.y = Y[0] + start_position[1]
@@ -461,8 +300,7 @@ def rep_trajectory(traj, start_position, timeSpan, freq):
         msg.a.z = Z[2]
 
         # Evaluate the thrust margin of the trjectory at the current time
-        (ffthrust, available_thrust) = trjh.getlimits(X, Y, Z, 
-                mass, thr_lim)
+        (ffthrust, available_thrust) = trjh.getlimits(X, Y, Z, mass, thr_lim)
 
         if (available_thrust < 0):
             rospy.loginfo("Exceding thrust limits!!")
@@ -501,9 +339,6 @@ if __name__ == '__main__':
     tg_pose_topic_ = rospy.get_param('topics/in_tg_pose_topic', "/vrpn_client_node/target/pose")
 
     ctrlsetpoint_topic_ = rospy.get_param('topics/out_ctrl_setpoint', "setpoint")
-
-    service_imp = rospy.Service('gen_ImpTrajectory', 
-            GenImpTrajectory, handle_genImpTrj)
 
     service_track = rospy.Service('gen_TrackTrajectory', 
             GenTrackTrajectory, handle_genTrackTrj)
