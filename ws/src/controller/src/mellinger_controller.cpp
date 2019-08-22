@@ -200,15 +200,23 @@ void MellingerController::StateCallback(
 
   // Desired thrust [F_des]
   Vector3d target_thrust = Vector3d::Zero();
-  target_thrust(0) = sp_acc_(0)                      + kp_xy * p_error(0) + kd_xy * v_error(0) + ki_xy * i_error_x;
-  target_thrust(1) = sp_acc_(1)                      + kp_xy * p_error(1) + kd_xy * v_error(1) + ki_xy * i_error_y;
-  target_thrust(2) = (sp_acc_(2) + GRAVITY_MAGNITUDE) + kp_z  * p_error(2) + kd_z  * v_error(2) + ki_z  * i_error_z;
+  Vector3d fb_thrust = Vector3d::Zero();
+    
+  fb_thrust(0) = kp_xy * p_error(0) + kd_xy * v_error(0) + ki_xy * i_error_x;
+  fb_thrust(1) = kp_xy * p_error(1) + kd_xy * v_error(1) + ki_xy * i_error_y;
+  fb_thrust(2) = kp_z  * p_error(2) + kd_z  * v_error(2) + ki_z  * i_error_z;
+
+  target_thrust(0) = sp_acc_(0);
+  target_thrust(1) = sp_acc_(1);
+  target_thrust(2) = (sp_acc_(2) + GRAVITY_MAGNITUDE);
+  
+  target_thrust = target_thrust + fb_thrust;
 
   // std::cout << "target_thrust: " << target_thrust << std::endl;
 
   // Move YAW angle setpoint
   double yaw_rate = 0;
-  double yaw_des = 0;
+  double yaw_des = sp_yaw_;
 
   // Z-Axis [zB]
   Matrix3d R = quat_.toRotationMatrix();

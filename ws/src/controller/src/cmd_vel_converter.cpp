@@ -121,6 +121,14 @@ namespace crazyflie_control_merger {
         twist.linear.x = crazyflie_utils::angles::RadiansToDegrees(msg->control.pitch);
         twist.angular.z = -crazyflie_utils::angles::RadiansToDegrees(msg->control.yaw_dot);
         twist.linear.z = crazyflie_utils::pwm::ThrustToPwmDouble(msg->control.thrust);
+        if (twist.linear.z > 60000) {
+            // On the firmware thrust is saturated at 60000
+            // Actually the upper bound is set also in the crazyflie_ros, thus 
+            // there are multiple points which assure the correct value.
+            // Here is just to signal the saturation.
+            ROS_INFO("The requested thrust command is too high: MAX = 60000");
+            twist.linear.z = 60000;
+        }
       }
 
 

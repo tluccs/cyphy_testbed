@@ -53,6 +53,7 @@ namespace pwm {
   // Convert the given thrust to a PWM signal (still double).
   static inline double ThrustToPwmDouble(double thrust) {
     const double k_thrust = 42000.0 / constants::G; //40000.0 / constants::G;
+
     return thrust * k_thrust;
   }
 
