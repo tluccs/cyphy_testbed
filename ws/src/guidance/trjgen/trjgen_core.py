@@ -65,7 +65,6 @@ def interpolPolys(X, deg, T, is_abstime):
     [A, b] = buildInterpolationProblem(X, deg, T, is_abstime)
 
     nullx = null_space(A)
-    
 
     # Define the time vector
     Dt = np.zeros((nWp - 1), dtype=float)
@@ -196,7 +195,6 @@ def buildInterpolationProblem(X, deg, T, is_abstime = True):
 
     return (A,b)
 
-
 ## =================================================
 ## =================================================
 def genQ(Dt, deg, der):
@@ -237,7 +235,6 @@ def genQ(Dt, deg, der):
         Q[deg * k: deg * (k  + 1) + 1, deg * k: deg * (k  + 1) + 1] = TT 
 
     return Q
-
 
 
 ## =================================================
@@ -305,14 +302,14 @@ def pp2file(Dt, polysX, polysY, polysZ, polysW, filename):
         for j in range(pollen):
             f.write('{:5f}, '.format(polysX[i,j]))
         for j in range(pollen):
-            f.write('{:5f}, '.format(polysX[i,j]))
+            f.write('{:5f}, '.format(polysY[i,j]))
         for j in range(pollen):
-            f.write('{:5f}, '.format(polysX[i,j]))
+            f.write('{:5f}, '.format(polysZ[i,j]))
         for j in range(pollen):
             if (j == pollen - 1):
-                f.write('{:5f}'.format(polysX[i,j]))
+                f.write('{:5f}'.format(polysW[i,j]))
             else:
-                f.write('{:5f}, '.format(polysX[i,j]))
+                f.write('{:5f}, '.format(polysW[i,j]))
         f.write('\n')
 
     f.close()
@@ -358,17 +355,16 @@ def ppFromfile(filename):
             polysZ[i,j] = data[i + 1][j + 1 + 16]
             polysW[i,j] = data[i + 1][j + 1 + 24]
 
-    print("Imported DT:")
+    print("Dt:")
     print(Dt)
-    print("Imported polyX: \n")
+    print("Imported polyX:")
     print(polysX)
-    print("Imported polyY: \n")
+    print("Imported polyY:")
     print(polysY)
-    print("Imported polyZ: \n")
+    print("Imported polyZ:")
     print(polysZ)
-    print("Imported polyW: \n")
+    print("Imported polyW:")
     print(polysW)
-
     csvfile.close()
 
     return (Dt, polysX, polysY, polysZ, polysW) 

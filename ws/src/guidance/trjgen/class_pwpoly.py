@@ -17,31 +17,33 @@ import trjgen.trjgen_core as trjg
 class PwPoly :
 
     ## Constructor
-    def __init__(self, waypoints, knots, degree):
+    def __init__(self, waypoints=None, knots=None, degree=None):
+        
+        if knots is not None:
+            # Knots (It's assumed that the knot of the first point is 0.0)
+            self.knots = np.array(knots)
 
-        # Store the waypoints
-        self.wp = waypoints
+        if degree is not None:
+            # Degree of the polynomial
+            self.degree = degree
 
-        # Knots (It's assumed that the knot of the first point is 0.0)
-        self.knots = np.array(knots)
+        if (waypoints is not None and knots is not None and degree is not None): 
+            # Store the waypoints
+            self.wp = waypoints
+            # Interpolation problem
+            (sol, null, _, coeff_m) = trjg.interpolPolys(waypoints, degree, knots, True)
 
-        # Degree of the polynomial
-        self.degree = degree
+            # Solution vector of the polynomial coefficient (1 row)
+            self.coeff_v = np.array(sol)
 
-        # Interpolation problem
-        (sol, null, _, coeff_m) = trjg.interpolPolys(waypoints, degree, knots, True)
+            # Base of the null space of the interpolation solution
+            self.null_b = np.array(null)
 
-        # Solution vector of the polynomial coefficient (1 row)
-        self.coeff_v = np.array(sol)
+            # Matrix of polynomials coefficients
+            self.coeff_m = np.array(coeff_m)
 
-        # Base of the null space of the interpolation solution
-        self.null_b = np.array(null)
-
-        # Matrix of polynomials coefficients
-        self.coeff_m = np.array(coeff_m)
-
-        # Number of pieces
-        self.npieces = coeff_m.shape[0]
+            # Number of pieces
+            self.npieces = coeff_m.shape[0]
 
 
     # Evaluate the Piecewise polynomial
@@ -173,6 +175,25 @@ class PwPoly :
         """
         coeff_v = self.coeff_v
         return coeff_v
+
+    def loadFromData(self, M, Dt, npieces):
+        """
+        Load the polynomial from data
+        """
+        if (M.shape[0] == 1):
+            self.coeff_v = M 
+            self.coeff_m = M.reshape(npieces, -1)
+        else:
+            self.coeff_m = M
+            self.coeff_v = M.reshape(1, -1)
+
+        self.npieces = npieces
+        
+        self.degree = self.coeff_m.shape[1] - 1
+        
+        self.knots = np.zeros(Dt.size + 1)
+        for i in range(Dt.size):
+            self.knots[i + 1] = self.knots[i] + Dt[i]
 
     ## Private
     # Find the piece of the piecewies polynomial active at time t
