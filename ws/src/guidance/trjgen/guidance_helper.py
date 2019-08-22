@@ -66,50 +66,59 @@ def integrationStep(X, u, dt, direction):
     A[1][4] = dt
     A[2][5] = dt
 
-    B1 = np.eye((3), dtype=float) * (dt**2)/2
+    B1 = np.eye((3), dtype=float) * (dt**2)/2.0
     B2 = np.eye((3), dtype=float) * dt
     B = np.vstack((B1, B2))
     
     if (direction == -1):
         # x(k) = A_(dt) x(k+1) + B_(dt) u(k)
         A = np.linalg.inv(A)
-        B = -1 * np.matmul(A, B)
+        B = -1.0 * np.matmul(A, B)
   
-  #  print("A")
-  #  print(A)
-
-  #  print("\nB")
-  #  print(B)
-
-  #  print("\nX")
-  #  print(X)
-
-  #  print("\nu")
-  #  print(u)
+#    print("A")
+#    print(A)
+#
+#    print("\nB")
+#    print(B)
+#
+#    print("\nX")
+#    print(X)
+#
+#    print("\nu")
+#    print(u)
     X = np.matmul(A, X) + np.matmul(B, u)
     return X
 
 
 # Back integration
 def Integration(p, v, a, Tf, dt, direction):  
-    t = 0.0
-
+    t = 0.0  
+    N = p.size
+    out_state = np.zeros((N, 1), dtype=float)
+    
     # State vector composed by position and velocity
-    p = np.resize(p, (3,1))
-    v = np.resize(v, (3,1))
-    a = np.resize(a, (3,1))
+    if (N > 1):
+        p = np.resize(p, (N,1))
+        v = np.resize(v, (N,1))
+        a = np.resize(a, (N,1))
+    
     X = np.vstack((p, v))
 
     while (t < Tf):
         X = integrationStep(X, a, dt, direction)
         t = t + dt
+        print(t)
+        print(X[0])
+        print("\n")
 
-    return X
+    out_state = np.copy(X)
+
+    return out_state
 
 
 
 # Generate the matrices for the interpolation problem
-def genInterpolProblem(tg, tg_q, yaw, v_norm, a_norm):
+def genInterpolProblem(tg, tg_q, yaw, v_norm, a_norm, t_impact):
     
     # Extract the coordinates of the target Z axis from the rotation matrix
     # extressed with the quaternion
@@ -119,9 +128,9 @@ def genInterpolProblem(tg, tg_q, yaw, v_norm, a_norm):
 
     a_dem = a_norm * tg_Zi - np.array([0.0, 0.0, 9.81])
     v_dem = -v_norm * tg_Zi
-   
+
     DT = 0.2
-    Trec = 4 * DT
+    Trec = 8 * DT
 
     # Compute the waypoints near the target
     # I am considering moving with a constant acceleration (negative), while going towards the target
@@ -137,27 +146,11 @@ def genInterpolProblem(tg, tg_q, yaw, v_norm, a_norm):
     rec_v[2] = 0.0;
     p_end = p_post + rec_v * Trec 
 
-    print("Relative Target = \n", tg)
-    print("Vel = \n", v_dem)
-    print("Acc = \n", a_dem)
-
-    print("Pre target point = ")
-    print(p_pre)
-    print("Pre target velocity = ")
-    print(v_pre)
-    
-    print("Post target point = ")
-    print(p_post)
-    print("Post target velocity = ")
-    print(v_post)
-
-    print("Recoil point = \n ", p_end)
-    
+        
     X = np.array([[]])
     Y = np.array([[]])
     Z = np.array([[]])
     W = np.array([[]])
-    
     
     xpre = np.array([p_pre[0], v_pre[0], a_dem[0]])
     xtrg = np.array([tg[0], v_dem[0], a_dem[0]])
@@ -195,7 +188,7 @@ def genInterpolProblem(tg, tg_q, yaw, v_norm, a_norm):
 
     W = AddConstraint(W, np.array([0,0,0]))
     W = AddConstraint(W, np.array([np.nan, np.nan, np.nan]))
-    W = AddConstraint(W, np.array([yaw, np.nan, np.nan]))
+    W = AddConstraint(W, np.array([np.nan, np.nan, np.nan]))
     W = AddConstraint(W, np.array([np.nan, np.nan, np.nan]))
     W = AddConstraint(W, np.array([0,0,0]))
    
@@ -203,7 +196,31 @@ def genInterpolProblem(tg, tg_q, yaw, v_norm, a_norm):
     # to the impact time (0.0)
     relknots = np.array([-DT, 0.0, DT, Trec])
    
-    return (X, Y, Z, W, relknots)
+    # Generate the knots vector
+    knots = relknots + t_impact
+    knots = np.hstack(([0.0], knots))
+
+    print("\n\n ===============  Generated Waypoints ============ ")
+    print("Relative Target = \n", tg)
+    print("Vel = \n", v_dem)
+    print("Acc = \n", a_dem)
+
+    print("Pre target point = ")
+    print(p_pre)
+    print("Pre target velocity = ")
+    print(v_pre)
+    
+    print("Post target point = ")
+    print(p_post)
+    print("Post target velocity = ")
+    print(v_post)
+
+    print("Recoil point = \n ", p_end)
+
+    print("Knots = \n ", knots)
+    print("\n")
+
+    return (X, Y, Z, W, knots)
 
 
 def getInterpolMatrices(tg, tg_q, yaw, v_norm, a_norm, dt):
