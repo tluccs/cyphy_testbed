@@ -31,9 +31,10 @@ Start the server process that connects the CF to the ROS system
         <param name="enable_logging_packets" value="False" />
         <param name="enable_logging_pose" value="True" /> 
         <rosparam>
-                genericLogTopics: ["logEstAttRPY"]
-                genericLogTopicFrequencies: [10]
+                genericLogTopics: ["logEstAttRPY", "logMotors"]
+                genericLogTopicFrequencies: [10, 10]
                 genericLogTopic_logEstAttRPY_Variables: ["stateEstimate.roll", "stateEstimate.pitch", "stateEstimate.yaw"]
+                genericLogTopic_logMotors: ["motors.m1", "motors.m2", "motors.m3", "motors.m4"]
         </rosparam>
 </node>
 
@@ -46,7 +47,7 @@ Controller = { PID | Mellinger }
 -->
 <node name="setup_vehicle" pkg="crazyflie_demo" type="setup_vehicle.py" output="screen">
         <param name="cf" value="$(arg frame)" />
-        <param name="comm_lev" value='0' type='int' />
+        <param name="comm_lev" value='1' type='int' />
         <param name="Estimator" value="EKF" type='str' />
         <param name="ResEstimator" value='true' type='bool' />
         <param name="Controller" value="Mellinger" type='str' />
@@ -69,6 +70,15 @@ Publish the Estimated odometry
 
 
 <!--
+========================================================================
+Monitoring
+<node pkg="rqt_plot"
+    type="rqt_plot" 
+    name="RealTime_Monitor" args="/cf1/logMotors"/>
+
+-->
+
+<!--
 ============================================================================
 Bag recording 
 
@@ -78,6 +88,6 @@ Bag recording
 - /ghost_trajectory: This is the requested trajectory pose (simulated)
 -->
 
-<node pkg="rosbag" name="record_cf" type="record" args="-O /tmp/cf1_est /cf1/pose /cf1/logEstAttRPY "/>
+<node pkg="rosbag" name="record_cf" type="record" args="-O /tmp/cf1_est /cf1/pose /cf1/logEstAttRPY /cf1/logMotors"/>
 
 </launch>
