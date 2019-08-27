@@ -98,11 +98,14 @@ bool StateAggregator::Initialize(const ros::NodeHandle& n) {
     ext_pos_pub_ = 
         nl.advertise<geometry_msgs::PointStamped> (ext_position_topic_.c_str(), 10);
     pose_pub_ = 
-        nl.advertise<geometry_msgs::PoseStamped> (ext_pose_topic_, 10);
+        nl.advertise<geometry_msgs::PoseStamped> (ext_pose_topic_.c_str(), 10);
     pose_rpy_pub_ =
-        nl.advertise<geometry_msgs::Vector3Stamped> (ext_pose_rpy_topic_, 10);
+        nl.advertise<geometry_msgs::Vector3Stamped> (ext_pose_rpy_topic_.c_str(), 10);
     odometry_pub_ =
-        nl.advertise<nav_msgs::Odometry> (ext_odom_topic_, 10); 
+        nl.advertise<nav_msgs::Odometry> (ext_odom_topic_.c_str(), 10); 
+    codometry_pub_ =
+	nl.advertise<testbed_msgs::CustOdometryStamped> (ext_codom_topic_.c_str(), 10); 
+
 
     // Initialize the header refereces of odometry messages
     ext_odom_trans_.header.frame_id = "world";
@@ -137,6 +140,9 @@ bool StateAggregator::LoadParameters(const ros::NodeHandle& n) {
     // External odometry
     np.param<std::string>("topics/out_ext_odom_topic", ext_odom_topic_,
             "external_odom");
+
+    np.param<std::string>("topics/out_ext_codom_topic", ext_codom_topic_,
+		    "external_codom");
 
     //    ROS_INFO("Namespace = %s", );
     // Params
@@ -325,8 +331,8 @@ void StateAggregator::onNewPose(
             1.0 - 2.0 * (q_pf_.y() * q_pf_.y() + q_pf_.z() * q_pf_.z()));
 
     // Pose: Position + Orientation
-    //ext_pose_msg_.header.stamp = msg->header.stamp;
-    ext_pose_msg_.header.stamp = current_time;
+    ext_pose_msg_.header.stamp = msg->header.stamp;
+    //ext_pose_msg_.header.stamp = current_time;
     ext_pose_msg_.pose.position.x = p_pf_(0);
     ext_pose_msg_.pose.position.y = p_pf_(1);
     ext_pose_msg_.pose.position.z = p_pf_(2);
@@ -337,6 +343,7 @@ void StateAggregator::onNewPose(
     ext_pose_msg_.pose.orientation.w = q_pf_.w();
 
     // Position
+    ext_position_msg_.header.stamp = msg->header.stamp;
     ext_position_msg_.point = ext_pose_msg_.pose.position;
 
     ext_pose_rpy_msg_.vector.x = euler_(0) * 180.0 / M_PI;
@@ -345,8 +352,8 @@ void StateAggregator::onNewPose(
     ext_pose_rpy_msg_.header.stamp = msg->header.stamp;
 
     // Odometry Topic
-    //ext_odometry_msg_.header.stamp = msg->header.stamp;
-    ext_odometry_msg_.header.stamp = current_time;
+    ext_odometry_msg_.header.stamp = msg->header.stamp;
+    //ext_odometry_msg_.header.stamp = current_time;
     ext_odometry_msg_.pose.pose.position = ext_pose_msg_.pose.position;
     ext_odometry_msg_.pose.pose.orientation = ext_pose_msg_.pose.orientation;
     ext_odometry_msg_.twist.twist.linear.x = vel_(0);
@@ -356,9 +363,22 @@ void StateAggregator::onNewPose(
     ext_odometry_msg_.twist.twist.angular.y = w_(1);
     ext_odometry_msg_.twist.twist.angular.z = w_(2);
 
+	// Custom Odometry Topic
+    ext_codometry_msg_.header.stamp = msg->header.stamp;
+    ext_codometry_msg_.p = ext_pose_msg_.pose.position;
+    ext_codometry_msg_.q = ext_pose_msg_.pose.orientation;
+    ext_codometry_msg_.v.x = vel_(0);
+    ext_codometry_msg_.v.y = vel_(1);
+    ext_codometry_msg_.v.z = vel_(2);
+    ext_codometry_msg_.w.x = w_(0);
+    ext_codometry_msg_.w.y = w_(1);
+    ext_codometry_msg_.w.z = w_(2);
+
+
+
     // Update Tranformation Message	
-    //ext_odom_trans_.header.stamp = msg->header.stamp;
-    ext_odom_trans_.header.stamp = current_time;
+    ext_odom_trans_.header.stamp = msg->header.stamp;
+    //ext_odom_trans_.header.stamp = current_time;
     // Position
     ext_odom_trans_.transform.translation.x = p_pf_(0);
     ext_odom_trans_.transform.translation.y = p_pf_(1);
@@ -373,6 +393,7 @@ void StateAggregator::onNewPose(
     pose_pub_.publish(ext_pose_msg_);
     pose_rpy_pub_.publish(ext_pose_rpy_msg_);
     odometry_pub_.publish(ext_odometry_msg_);
+	codometry_pub_.publish(ext_codometry_msg_);
 
     return;
 }

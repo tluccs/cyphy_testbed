@@ -44,6 +44,7 @@ Control Algorithm
 com_lev = {0 "low level" | 1 "high level"}
 Estimator = {CMP | EKF | USC}
 Controller = { PID | Mellinger }
+stabMode = {0 "angle" | 1 "rates"}
 -->
 <node name="setup_vehicle" pkg="crazyflie_demo" type="setup_vehicle.py" output="screen">
         <param name="cf" value="$(arg frame)" />
@@ -51,6 +52,7 @@ Controller = { PID | Mellinger }
         <param name="Estimator" value="EKF" type='str' />
         <param name="ResEstimator" value='true' type='bool' />
         <param name="Controller" value="Mellinger" type='str' />
+        <param name="stabMode" value="0" type='int' />
 </node>
 
 

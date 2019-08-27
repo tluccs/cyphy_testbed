@@ -8,6 +8,7 @@ find_package(
 	roscpp 
 	tf 
 	std_msgs
+	testbed_msgs
 	)
 find_package (Eigen3 REQUIRED NO_MODULE)
 

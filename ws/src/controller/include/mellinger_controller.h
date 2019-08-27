@@ -50,16 +50,20 @@
 #include <testbed_msgs/Control.h>
 #include <testbed_msgs/ControlStamped.h>
 #include <testbed_msgs/FullStateStamped.h>
+#include <testbed_msgs/CustOdometryStamped.h>
 #include <Eigen/Geometry>
 
 #include <ros/ros.h>
 #include <std_msgs/Empty.h>
-#include <nav_msgs/Odometry.h>
 #include <math.h>
 #include <fstream>
 
 namespace controller {
 
+enum ControlMode {
+  ANGLES, RATES, NUM_MODES
+};
+  
 class MellingerController {
   public:
   // MellingerController() {}
@@ -88,7 +92,9 @@ class MellingerController {
 
   // Process an incoming state measurement.
   void StateCallback(
-    const nav_msgs::Odometry::ConstPtr& msg);
+    const testbed_msgs::CustOdometryStamped::ConstPtr& msg);
+
+  ControlMode ctrl_mode_;
 
   double g_vehicleMass; // TODO: should be CF global for other modules
   double massThrust;
@@ -118,8 +124,12 @@ class MellingerController {
   double i_range_m_z;
 
   // roll and pitch angular velocity
-  double kd_omega_rp; // D
-  
+  double kd_omega_rp; // D  
+
+  // Gain for the rate controller
+  double kpq_rates_; // Gain for roll/pitch
+  double kr_rates_; // Gain for yaw
+
   // Helper variables
   double i_error_x;
   double i_error_y;

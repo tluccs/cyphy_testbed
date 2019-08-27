@@ -15,6 +15,7 @@
 #include "Eigen/Dense"
 #include <tf/transform_broadcaster.h>
 #include <nav_msgs/Odometry.h>
+#include <testbed_msgs/CustOdometryStamped.h>
 #include <geometry_msgs/PoseStamped.h>
 
 using namespace Eigen;
@@ -51,6 +52,7 @@ class StateAggregator {
                 ros::Publisher pose_pub_;
                 ros::Publisher pose_rpy_pub_;
                 ros::Publisher odometry_pub_;
+		ros::Publisher codometry_pub_;
                 tf::TransformBroadcaster ext_odom_broadcaster_;
 
                 ros::Subscriber inchannel1_; 
@@ -61,6 +63,7 @@ class StateAggregator {
                 std::string ext_pose_topic_;
                 std::string ext_pose_rpy_topic_;
                 std::string ext_odom_topic_;
+		std::string ext_codom_topic_;
 
                 // Initialized flag and name.
                 bool received_reference_;
@@ -74,6 +77,7 @@ class StateAggregator {
                 geometry_msgs::PointStamped ext_position_msg_;
                 nav_msgs::Odometry ext_odometry_msg_;
                 geometry_msgs::TransformStamped ext_odom_trans_;
+		testbed_msgs::CustOdometryStamped ext_codometry_msg_;
 
                 // ===========================================================
                 // Helper variables
