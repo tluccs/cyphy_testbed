@@ -6,7 +6,7 @@
 
   <license>TODO</license>
 
-  <maintainer email="rt-2pm2@todo.todo">rt-2pm2</maintainer>
+  <maintainer email="lpannocchi@g.ucla.com">Luigi Pannocchi</maintainer>
 
 	<buildtool_depend>catkin</buildtool_depend>
 	<build_depend>tf</build_depend>
