@@ -29,8 +29,6 @@ current_odometry = Odometry()
 current_target = PoseStamped()
 
 
-
-
 def odom_callback(odometry_msg):
     global current_odometry 
     current_odometry = odometry_msg
@@ -54,6 +52,7 @@ def handle_genImpTrjAuto(req):
     a_norm = req.a_norm
     v_norm = req.v_norm
 
+    # Take the current pose of the vehicle
     start_pos = np.array([current_odometry.pose.pose.position.x, 
             current_odometry.pose.pose.position.y, 
             current_odometry.pose.pose.position.z])
@@ -62,7 +61,9 @@ def handle_genImpTrjAuto(req):
         current_odometry.pose.pose.orientation.y,
         current_odometry.pose.pose.orientation.z]
     )
+    start_yaw = quat2yaw(start_orientation)
 
+    # Take the current target pose
     tg_pos = np.array([current_target.pose.position.x,
             current_target.pose.position.y,
             current_target.pose.position.z])
@@ -71,25 +72,27 @@ def handle_genImpTrjAuto(req):
         current_target.pose.orientation.x,
         current_target.pose.orientation.y,
         current_target.pose.orientation.z]
-        )
-   
-    start_yaw = quat2yaw(start_orientation)
+        ) 
     tg_yaw = quat2yaw(tg_q)
 
-    rospy.loginfo("On Target in " + str(req.t2go) + " sec!")
+    rospy.loginfo("\nOn Target in " + str(req.t2go) + " sec!")
     rospy.loginfo("Target = [" + str(tg_pos[0]) + " " +
             str(tg_pos[1]) + " " + str(tg_pos[2]) + "]")
     rospy.loginfo("Vehicle = [" + str(start_pos[0]) + " " +
             str(start_pos[1]) + " " + str(start_pos[2]) + "]")
 
-    # Generate the interpolation matrices
-    (X, Y, Z, W, relknots) = genInterpolProblem(tg_pos - start_pos, tg_q, tg_yaw - start_yaw, v_norm, a_norm)
-    # Generate the knots vector
+    # Time to go
     t_impact = req.t2go
-    knots = relknots + t_impact
-    knots = np.hstack(([0.0], knots))
+    t_impact = np.linalg.norm(tg_pos)/0.8
 
-    # Generate the polynomial
+
+    DT = 0.1 
+    (p_pre, v_pre, a_dem) = computeTerminalTrjStart(tg_pos, tg_q, v_norm, a_norm, DT) 
+ 
+    # Generate the interpolation matrices to reach the pre-impact point
+    (X, Y, Z, W, knots) = genInterpolProblem(p_pre - start_pos, v_pre, a_dem, tg_yaw - start_yaw, t_impact)
+    
+    # Generate the polynomials
     ppx = pw.PwPoly(X, knots, ndeg)
     ppy = pw.PwPoly(Y, knots, ndeg)
     ppz = pw.PwPoly(Z, knots, ndeg)
@@ -103,7 +106,7 @@ def handle_genImpTrjAuto(req):
 
     my_traj.writeTofile(Dt, '/tmp/toTarget.csv')
 
-    t = Thread(target=rep_trajectory, args=(my_traj, start_pos, max(knots), frequency)).start()
+    t = Thread(target=rep_ImpactTrajectory, args=(my_traj, start_pos, max(knots), DT, frequency)).start()
 
 #    (Dt, polysX, polysY, polysZ, polysW) = tj.ppFromfile('/tmp/toTarget.csv')
 #
@@ -289,7 +292,7 @@ def rep_trajectory(traj, start_position, timeSpan, freq):
 
         msg.p.x = X[0] + start_position[0]
         msg.p.y = Y[0] + start_position[1]
-        msg.p.z = Z[0] + start_position[2] 
+        msg.p.z = Z[0] + start_position[2]
 
         msg.v.x = X[1] 
         msg.v.y = Y[1]
@@ -326,6 +329,113 @@ def rep_trajectory(traj, start_position, timeSpan, freq):
         curr_time = rospy.get_time()
 
 
+# Generate the terminal trajectory
+def rep_ImpactTrajectory(traj, start_position, timeSpan, timeTerminal, freq):
+    global ctrl_setpoint_pub
+
+    mass = 0.032;
+    thr_lim = 9.81 * mass * 1.5
+
+    r = rospy.Rate(freq)
+
+    start_time = rospy.get_time() 
+    curr_time = start_time
+    end_time = start_time + timeSpan
+
+    msg = ControlSetpoint()
+    rtime = rospy.get_rostime()
+    msg.header.stamp = rtime
+
+    # Publishing Loop
+    while (curr_time < end_time):
+        # Evaluate the trajectory
+        (X, Y, Z, W, R, Omega) = traj.eval((curr_time - start_time), [0, 1, 2, 3])
+
+        msg.p.x = X[0] + start_position[0]
+        msg.p.y = Y[0] + start_position[1]
+        msg.p.z = Z[0] + start_position[2]
+
+        msg.v.x = X[1] 
+        msg.v.y = Y[1]
+        msg.v.z = Z[1]
+
+        msg.a.x = X[2]
+        msg.a.y = Y[2]
+        msg.a.z = Z[2]
+
+        # Evaluate the thrust margin of the trjectory at the current time
+        (ffthrust, available_thrust) = trjh.getlimits(X, Y, Z, mass, thr_lim)
+
+        if (available_thrust < 0):
+            rospy.loginfo("Exceding thrust limits!!")
+            rospy.loginfo("\t" + str(available_thrust))
+
+        # Conver the Rotation matrix to euler angles
+        (roll, pitch, yaw) = euler_from_matrix(R)
+
+        msg.rpy.x = roll
+        msg.rpy.y = pitch
+        msg.rpy.z = yaw
+
+        msg.brates.x = Omega[0]
+        msg.brates.y = Omega[1]
+        msg.brates.z = Omega[2]
+ 
+        # Pubblish the evaluated trajectory
+        ctrl_setpoint_pub.publish(msg)
+
+        # Wait the next loop
+        r.sleep()
+        # Take the time
+        curr_time = rospy.get_time()
+
+    
+    # Generate the terminal part of the trajectory
+    p = np.array([X[0] + start_position[0], 
+            Y[0] + start_position[1], 
+            Z[0] + start_position[2]])
+    p = np.reshape(p, (3,1))
+    v = np.array([X[1], Y[1], Z[1]])
+    v = np.reshape(v, (3,1))
+    a = np.array([X[2], Y[2], Z[2]])
+    a = np.reshape(a, (3,1))
+
+    rospy.loginfo("Reached the pre-point: \n");
+    rospy.loginfo(p)
+    rospy.loginfo(v)
+    rospy.loginfo(a)
+
+
+    X = np.vstack((p,v))
+    while (curr_time < end_time + timeTerminal):
+        dt = 1/freq
+        X = integrationStep(X, a, dt, 1)
+        p = X[0:3]
+        v = X[3:6]
+
+        msg.p.x = p[0]
+        msg.p.y = p[1]
+        msg.p.z = p[2]
+
+        msg.v.x = v[0] 
+        msg.v.y = v[1]
+        msg.v.z = v[2]
+
+        msg.a.x = a[0]
+        msg.a.y = a[1]
+        msg.a.z = a[2]
+
+        # Pubblish the evaluated trajectory
+        ctrl_setpoint_pub.publish(msg)
+
+        # Wait the next loop
+        r.sleep()
+        # Take the time
+        curr_time = rospy.get_time()
+
+    rospy.loginfo("Terminated")
+
+         
 if __name__ == '__main__':
     rospy.init_node('Guidance_Node')
 

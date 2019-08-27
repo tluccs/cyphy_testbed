@@ -75,7 +75,7 @@ def interpolPolys(X, deg, T, is_abstime):
     else:
         Dt = T
 
-    Q = genQ(Dt, deg, 4)
+    Q = genQ(Dt, deg, 2)
     # M1x = F^T * Q * F
     M1x = (np.matmul(np.matmul(nullx.transpose(), Q), nullx))
     # M2x = - M1x * F^T * Q
@@ -83,7 +83,7 @@ def interpolPolys(X, deg, T, is_abstime):
 
     # One solution 
     # I select the minimum norm solution to the problem
-    inv_AA_T = np.linalg.inv( np.matmul(A, A.transpose()))
+    inv_AA_T = np.linalg.inv(np.matmul(A, A.transpose()))
     pseudoInv =  np.matmul(A.transpose(), inv_AA_T) 
     sol_min_norm = np.matmul(pseudoInv, b)
     res = np.matmul(A, sol_min_norm)

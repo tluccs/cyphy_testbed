@@ -107,116 +107,104 @@ def Integration(p, v, a, Tf, dt, direction):
     while (t < Tf):
         X = integrationStep(X, a, dt, direction)
         t = t + dt
-        print(t)
-        print(X[0])
-        print("\n")
 
     out_state = np.copy(X)
 
     return out_state
 
 
+# Generate the Terminal Flight
+def computeTerminalTrjStart(tg, tg_q, v_norm, a_norm, DT):
 
-# Generate the matrices for the interpolation problem
-def genInterpolProblem(tg, tg_q, yaw, v_norm, a_norm, t_impact):
-    
-    # Extract the coordinates of the target Z axis from the rotation matrix
-    # extressed with the quaternion
+    # Compute the normal of the target surface
     tg_Zi = np.array([2.0*tg_q[0]*tg_q[2] + 2.0*tg_q[1]*tg_q[3],
          2.0*(tg_q[2]*tg_q[3] - tg_q[0]*tg_q[1]),
          tg_q[0]*tg_q[0] -tg_q[1]*tg_q[1] -tg_q[2]*tg_q[2] + tg_q[3]*tg_q[3]]) 
 
+    # Compute the acceleration vector
     a_dem = a_norm * tg_Zi - np.array([0.0, 0.0, 9.81])
+    # Compute the velocity vector on the target
     v_dem = -v_norm * tg_Zi
-
-    DT = 0.2
-    Trec = 8 * DT
 
     # Compute the waypoints near the target
     # I am considering moving with a constant acceleration (negative), while going towards the target
     xv_pre = Integration(tg, v_dem, a_dem, DT, 0.001, -1) 
     p_pre = np.reshape(xv_pre[0:3], (3,))
     v_pre = np.reshape(xv_pre[3:6], (3,))
-   
-    xv_post = Integration(tg, v_dem, a_dem, DT, 0.001, 1) 
-    p_post = np.reshape(xv_post[0:3], (3,))
-    v_post = np.reshape(xv_post[3:6], (3,))
+    
+    return (p_pre, v_pre, a_dem)
 
-    rec_v = np.copy(v_post)
-    rec_v[2] = 0.0;
-    p_end = p_post + rec_v * Trec 
 
-        
+# Generate the matrices for the interpolation problem
+def genInterpolProblem(tg, vtg, atg, yaw, t_impact):
+
     X = np.array([[]])
     Y = np.array([[]])
     Z = np.array([[]])
     W = np.array([[]])
     
-    xpre = np.array([p_pre[0], v_pre[0], a_dem[0]])
-    xtrg = np.array([tg[0], v_dem[0], a_dem[0]])
-    xpost = np.array([p_post[0], v_post[0], np.nan])
-    xend = np.array([p_end[0], 0, 0])
+    xtrg = np.array([tg[0], vtg[0], atg[0]]) 
+    ytrg = np.array([tg[1], vtg[1], atg[1]])
+    ztrg = np.array([tg[2], vtg[2], atg[2]]) 
     
-    ypre = np.array([p_pre[1], v_pre[1], a_dem[1]])
-    ytrg = np.array([tg[1], v_dem[1], a_dem[1]])
-    ypost = np.array([p_post[1], v_post[1], np.nan])
-    yend = np.array([p_end[1], 0, 0])
-
-    zpre = np.array([p_pre[2], v_pre[2], a_dem[2]])
-    ztrg = np.array([tg[2], v_dem[2], a_dem[2]])
-    zpost = np.array([p_post[2], v_post[2], np.nan])
-    zend = np.array([p_end[2], 0, 0])
     
     X = AddConstraint(X, np.array([0,0,0]))
-    X = AddConstraint(X, xpre)
-    X = AddConstraint(X, xtrg)
-    X = AddConstraint(X, xpost)
-    X = AddConstraint(X, xend)
-    
     Y = AddConstraint(Y, np.array([0,0,0]))
-    Y = AddConstraint(Y, ypre)
-    Y = AddConstraint(Y, ytrg)
-    Y = AddConstraint(Y, ypost)
-    Y = AddConstraint(Y, yend)
-    
     Z = AddConstraint(Z, np.array([0,0,0]))
-    Z = AddConstraint(Z, zpre)
-    Z = AddConstraint(Z, ztrg)
-    Z = AddConstraint(Z, zpost)
-    Z = AddConstraint(Z, zend)
-    
+    W = AddConstraint(W, np.array([0,0,0]))
 
-    W = AddConstraint(W, np.array([0,0,0]))
-    W = AddConstraint(W, np.array([np.nan, np.nan, np.nan]))
-    W = AddConstraint(W, np.array([np.nan, np.nan, np.nan]))
-    W = AddConstraint(W, np.array([np.nan, np.nan, np.nan]))
-    W = AddConstraint(W, np.array([0,0,0]))
-   
-    # Generate the relative array of knots with respect
-    # to the impact time (0.0)
-    relknots = np.array([-DT, 0.0, DT, Trec])
+    knots = np.array([0.0])
+    N = 4
+    for i in range(0):
+        xst = np.array([tg[0] * (i + 1)/(N + 1), np.nan, np.nan]) 
+        X = AddConstraint(X, xst)
+
+        yst = np.array([tg[1] * (i + 1)/(N + 1), np.nan, np.nan])
+        Y = AddConstraint(Y, yst)
+
+        zst = np.array([tg[2] * (i + 1)/(N + 1), np.nan, np.nan]) 
+        Z = AddConstraint(Z, zst)
+    
+        W = AddConstraint(W, np.array([0,np.nan,0]))
+
+        knots = np.append(knots, t_impact * (i + 1)/(N + 1))
+
+    X = AddConstraint(X, xtrg)
+    Y = AddConstraint(Y, ytrg)
+    Z = AddConstraint(Z, ztrg)
+    W = AddConstraint(W, np.array([0,yaw,0]))
+    
+    knots = np.append(knots, t_impact)
+
+    print(X)
+
+#    xst = np.array([tg[0]/2.0, np.nan, np.nan]) 
+#    yst = np.array([tg[1]/2.0, np.nan, np.nan])
+#    zst = np.array([tg[2]/2.0, np.nan, np.nan]) 
+#
+#    X = AddConstraint(X, np.array([0,0,0]))
+#    X = AddConstraint(X, xst)
+#    X = AddConstraint(X, xtrg)
+#    
+#    Y = AddConstraint(Y, np.array([0,0,0]))
+#    Y = AddConstraint(Y, yst)
+#    Y = AddConstraint(Y, ytrg)
+#    
+#    Z = AddConstraint(Z, np.array([0,0,0]))
+#    Z = AddConstraint(Z, zst)
+#    Z = AddConstraint(Z, ztrg)
+#
+#    W = AddConstraint(W, np.array([0,0,0]))
+#    W = AddConstraint(W, np.array([0,np.nan,0]))
+#    W = AddConstraint(W, np.array([0,yaw,0]))
    
     # Generate the knots vector
-    knots = relknots + t_impact
-    knots = np.hstack(([0.0], knots))
+#    knots = np.array([0.0, t_impact/2.0, t_impact])
 
     print("\n\n ===============  Generated Waypoints ============ ")
     print("Relative Target = \n", tg)
-    print("Vel = \n", v_dem)
-    print("Acc = \n", a_dem)
-
-    print("Pre target point = ")
-    print(p_pre)
-    print("Pre target velocity = ")
-    print(v_pre)
-    
-    print("Post target point = ")
-    print(p_post)
-    print("Post target velocity = ")
-    print(v_post)
-
-    print("Recoil point = \n ", p_end)
-
+    print("Vel = \n", vtg)
+    print("Acc = \n", atg)
     print("Knots = \n ", knots)
     print("\n")
 
