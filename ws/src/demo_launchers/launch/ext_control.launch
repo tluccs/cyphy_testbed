@@ -45,12 +45,12 @@
   <arg name="i_error_m_y" value="0" />
   <arg name="i_error_m_z" value="0" />
 
-  <arg name="control_mode" value="0"/> <!-- 0: Angle 1: Rates -->
+  <arg name="control_mode" value="1"/> <!-- 0: Angle 1: Rates -->
 
   <!-- Mellinger controller. -->
-  <node name="mellinger_controller"
+  <node name="mpc_controller"
         pkg="controller"
-        type="mellinger_controller_node"
+        type="autopilot_mpc_instance"
         output="screen">
 
     <param name="g_vehicleMass" value="$(arg g_vehicleMass)" />
