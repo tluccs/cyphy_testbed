@@ -6,3 +6,5 @@ ws/src/CMakeLists.txt
 .catkin_workspace
 *.pyc
 rosnet.config
+*.zsh
+*env/
