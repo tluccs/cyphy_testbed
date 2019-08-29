@@ -20,18 +20,17 @@
 
 
 
-
 namespace controller {
 
   // Initialize.
   bool MellingerController::Initialize(const ros::NodeHandle& n) :
-	  mpc_wrapper_(MpcWrapper<T>()),
-	  est_state_((Eigen::Matrix<T, kStateSize, 1>() <<
+	  mpc_wrapper_(MpcWrapper<float>()),
+	  est_state_((Eigen::Matrix<float, kStateSize, 1>() <<
 	    0, 0, 0, 1, 0, 0, 0, 0, 0, 0).finished()),
-	  reference_states_(Eigen::Matrix<T, kStateSize, kSamples+1>::Zero()),
-	  reference_inputs_(Eigen::Matrix<T, kInputSize, kSamples+1>::Zero()),
-	  predicted_states_(Eigen::Matrix<T, kStateSize, kSamples+1>::Zero()),
-	  predicted_inputs_(Eigen::Matrix<T, kInputSize, kSamples>::Zero())
+	  reference_states_(Eigen::Matrix<float, kStateSize, kSamples+1>::Zero()),
+	  reference_inputs_(Eigen::Matrix<float, kInputSize, kSamples+1>::Zero()),
+	  predicted_states_(Eigen::Matrix<float, kStateSize, kSamples+1>::Zero()),
+	  predicted_inputs_(Eigen::Matrix<float, kInputSize, kSamples>::Zero())
  {
     name_ = ros::names::append(n.getNamespace(), "controller");
     static const bool do_preparation_step = false;
@@ -54,9 +53,6 @@ namespace controller {
     ros::NodeHandle nl(n);
     control_pub_ = nl.advertise<testbed_msgs::ControlStamped>(
         control_topic_.c_str(), 1, false);
-    //Odometry publisher
-    odom_pub = nl.advertise<testbed_msgs::CustOdomStamped>(
-        cmd_vel_topic_.c_str(), 1, false);
 
     Reset();
 
@@ -109,7 +105,6 @@ namespace controller {
     if (!nl.getParam("topics/state", state_topic_)) return false;
     if (!nl.getParam("topics/setpoint", setpoint_topic_)) return false;
     if (!nl.getParam("topics/control", control_topic_)) return false;
-    if (!nl.getParam("topics/cmd_vel", cmd_vel_topic_)) return false;
 
     // Control Mode
     if (!nl.getParam("control_mode", (int&)ctrl_mode_)) return false;
@@ -192,7 +187,7 @@ namespace controller {
   q = AngleAxisf(msg->rpy.x, Vector3f::UnitX())
 	* AngleAxisf(msg->rpy.y, Vector3f::UnitY())
 	* AngleAxisf(msg->rpy.z, Vector3f::UnitZ());
-      reference_states_ = (Eigen::Matrix<T, kStateSize, 1>() <<
+      reference_states_ = (Eigen::Matrix<float, kStateSize, 1>() <<
       msg->p.x,
       msg->p.y,
       msg->p.z,
@@ -205,7 +200,7 @@ namespace controller {
       msg->v.z,
       ).finished().replicate(1, kSamples+1);
 
-    reference_inputs_ = (Eigen::Matrix<T, kInputSize, 1>() <<
+    reference_inputs_ = (Eigen::Matrix<float, kInputSize, 1>() <<
       msg->a.x,
       msg->a.y,
       msg->a.z - GRAVITY_MAGNITUDE,
@@ -258,9 +253,9 @@ namespace controller {
   mpc_wrapper_.getStates(predicted_states_);
   mpc_wrapper_.getInputs(predicted_inputs_);
 
- Eigen::Ref<const Eigen::Matrix<T, kStateSize, 1>> state = predicted_states_.col(0)
- Eigen::Ref<const Eigen::Matrix<T, kInputSize, 1>> input = predicted_inputs_.col(0)
- Eigen::Matrix<T, kInputSize, 1> input_bounded = input.template cast<T>();
+ Eigen::Ref<const Eigen::Matrix<float, kStateSize, 1>> state = predicted_states_.col(0)
+ Eigen::Ref<const Eigen::Matrix<float, kInputSize, 1>> input = predicted_inputs_.col(0)
+ Eigen::Matrix<float, kInputSize, 1> input_bounded = input.template cast<float>();
   
   // Bound inputs for sanity. 
   input_bounded(0) = std::max(MIN_THRUST,
@@ -272,6 +267,7 @@ namespace controller {
   input_bounded(3) = std::max(MIN_BODYRATE_Z_,
     std::min(MAX_BODYRATE_Z, input_bounded(3));
 /*
+all outputs of ACADO, not using orientation
   command.collective_thrust = input_bounded(INPUT::kThrust);
   command.bodyrates.x() = input_bounded(INPUT::kRateX);
   command.bodyrates.y() = input_bounded(INPUT::kRateY);
@@ -282,154 +278,15 @@ namespace controller {
   command.orientation.z() = state(STATE::kOriZ);
 */
 
-
-
-//Publish ACADO/MPC controller output TODO check this
-
-    testbed_msgs::CustOdometryStamped odom_msg;
-    odom_msg.header.stamp = ros::Time::now();
-    odom_msg.q.w = state(0);
-    odom_msg.q.x = state(1);
-    odom_msg.q.y = state(2);
-    odom_msg.q.z = state(3);
-
-    odom_msg.w.thrust = input_bounded(0);
-    odom_msg.w.x = input_bounded(1);
-    odom_msg.w.y = input_bounded(2);
-    odom_msg.w.z = input_bounded(3);
-
-    odom_pub.publish(odom_msg);
-
-/*
-    // Compute dt
-    float dt = ros::Time::now().toSec() - last_state_time_; // (float)(1.0f/ATTITUDE_RATE);
-    last_state_time_ = ros::Time::now().toSec();
-    // std::cout << "dt: " << dt << std::endl;
-
-    // Position and Velocity error
-    Vector3d p_error = sp_pos_ - pos_;
-    Vector3d v_error = sp_vel_ - vel_;
-    // std::cout << "p_error: " << p_error << std::endl;
-    // std::cout << "v_error: " << v_error << std::endl;
-
-    // Integral Error
-    i_error_x += p_error(0) * dt;
-    i_error_x = std::max(std::min(p_error(0), i_range_xy), -i_range_xy);
-
-    i_error_y += p_error(1) * dt;
-    i_error_y = std::max(std::min(p_error(1), i_range_xy), -i_range_xy);
-
-    i_error_z += p_error(2) * dt;
-    i_error_z = std::max(std::min(p_error(2), i_range_z), -i_range_z);
-
-    // Desired thrust [F_des]
-    Vector3d target_thrust = Vector3d::Zero();
-    Vector3d fb_thrust = Vector3d::Zero();
-
-    fb_thrust(0) = kp_xy * p_error(0) + kd_xy * v_error(0) + ki_xy * i_error_x;
-    fb_thrust(1) = kp_xy * p_error(1) + kd_xy * v_error(1) + ki_xy * i_error_y;
-    fb_thrust(2) = kp_z  * p_error(2) + kd_z  * v_error(2) + ki_z  * i_error_z;
-
-    target_thrust(0) = sp_acc_(0);
-    target_thrust(1) = sp_acc_(1);
-    target_thrust(2) = (sp_acc_(2) + GRAVITY_MAGNITUDE);
-
-    target_thrust = target_thrust + fb_thrust;
-
-    // std::cout << "target_thrust: " << target_thrust << std::endl;
-
-    // Move YAW angle setpoint
-    double yaw_rate = 0;
-    double yaw_des = sp_yaw_;
-
-    // Z-Axis [zB]
-    Matrix3d R = quat_.toRotationMatrix();
-    Vector3d z_axis = R.col(2);
-
-    // Current thrust [F]
-    double current_thrust = target_thrust.dot(z_axis);
-
-    // Calculate axis [zB_des]
-    Vector3d z_axis_desired = target_thrust.normalized();
-
-    // [xC_des]
-    // x_axis_desired = z_axis_desired x [sin(yaw), cos(yaw), 0]^T
-    Vector3d x_c_des;
-    x_c_des(0) = cosf(radians(yaw_des));
-    x_c_des(1) = sinf(radians(yaw_des));
-    x_c_des(2) = 0;
-
-    // [yB_des]
-    // Vector3d y_axis_desired = (z_axis_desired.cross(x_c_des)).normalized();
-    Vector3d y_axis_desired = (z_axis_desired.cross(R.col(0))).normalized();
-
-    // [xB_des]
-    Vector3d x_axis_desired = (y_axis_desired.cross(z_axis_desired)).normalized();
-
-    Matrix3d Rdes;
-    Rdes.col(0) = x_axis_desired;
-    Rdes.col(1) = y_axis_desired;
-    Rdes.col(2) = z_axis_desired;
-
+//Publish output of ACADO/MPC  TODO check this
     testbed_msgs::ControlStamped control_msg;
-
-    switch (ctrl_mode_) {
-      // Control the drone with attitude commands
-      case ControlMode::ANGLES: 
-        {
-          // Create "Heading" rotation matrix (x-axis aligned w/ drone but z-axis vertical)
-          Matrix3d Rhdg;
-          Vector3d x_c(R(0,0) ,R(1,0), 0);
-          x_c.normalize();
-          Vector3d z_c(0, 0, 1);
-          Vector3d y_c = z_c.cross(x_c);
-          Rhdg.col(0) = x_c;
-          Rhdg.col(1) = y_c;
-          Rhdg.col(2) = z_c;
-
-          Matrix3d Rout = Rhdg.transpose() * Rdes;
-
-          Matrix3d Rerr = 0.5 * (Rdes.transpose() * Rhdg - Rhdg.transpose() * Rdes);
-          Vector3d Verr(-Rerr(1,2),Rerr(0,2),-Rerr(0,1));
-
-          // std::cout << "Rout: " << Rout << std::endl;
-
-          control_msg.header.stamp = ros::Time::now();
-
-          control_msg.control.roll = std::atan2(Rout(2,1),Rout(2,2));
-          control_msg.control.pitch = -std::asin(Rout(2,0));
-          control_msg.control.yaw_dot = -10*std::atan2(R(1,0),R(0,0)); //std::atan2(Rdes(1,0),Rdes(0,0));
-          control_msg.control.thrust = current_thrust;
-          break; 
-        }
-        // Control the drone with rate commands
-      case ControlMode::RATES:
-        {
-          // Compute the rotation error between the desired z_ and the current one in Inertial frame
-          Vector3d ni = z_axis.cross(z_axis_desired);
-          double alpha = std::acos(ni.norm());
-          ni.normalize();
-
-          // Express the axis in body frame
-          Vector3d nb = quat_.inverse() * ni;
-          Quaterniond q_pq(Eigen::AngleAxisd(alpha, nb));
-
-          control_msg.control.roll = (q_pq.w() > 0) ? (2.0 * kpq_rates_ * q_pq.x()) : (-2.0 * kpq_rates_ * q_pq.x());
-          control_msg.control.pitch = (q_pq.w() > 0) ? (2.0 * kpq_rates_ * q_pq.y()) : (-2.0 * kpq_rates_ * q_pq.y());
-
-          Quaterniond q_r = q_pq.inverse() * quat_.inverse() * Quaterniond(Rdes);
-          control_msg.control.yaw_dot = (q_r.w() > 0) ? (2.0 * kr_rates_ * q_r.z()) : (-2.0 * kr_rates_ * q_r.z());
-          control_msg.control.yaw_dot = -1.0 * control_msg.control.yaw_dot;
-          ROS_ERROR("HEREHERE");
-
-          break;
-        }
-        // Something is wrong if Default...
-              default:
-        ROS_ERROR("%s: Unable to select the control mode.", name_.c_str());
-    }
-    control_pub_.publish(control_msg);
-*/
+	control_msg.header.stamp = ros::Time::now();
+	control_msg.control.thrust = input_bounded(0);
+	control_msg.control.roll = input_bounded(1);
+	control_msg.control.pitch = input_bounded(2);
+	control_msg.control.yaw_dot = input_bounded(3);
+	
+	control_pub_.publish(control_msg);
 
   }
 
