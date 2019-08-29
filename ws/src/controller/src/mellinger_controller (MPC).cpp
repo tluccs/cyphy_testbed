@@ -4,8 +4,9 @@
 #include "math3d.h"
 #include <stdio.h>
 #include <Eigen/Geometry>
-#include "rpg_mpc/mpc_controller.h"
 
+//EXTRA INCLUDES
+#include "mpc_wrapper.h"
 #include <ctime>
 
 
@@ -44,6 +45,9 @@ namespace controller {
     ros::NodeHandle nl(n);
     control_pub_ = nl.advertise<testbed_msgs::ControlStamped>(
         control_topic_.c_str(), 1, false);
+    //Odometry publisher
+    odom_pub = nl.advertise<testbed_msgs::CustOdomStamped>(
+        cmd_vel_topic_.c_str(), 1, false);
 
     Reset();
 
@@ -96,6 +100,7 @@ namespace controller {
     if (!nl.getParam("topics/state", state_topic_)) return false;
     if (!nl.getParam("topics/setpoint", setpoint_topic_)) return false;
     if (!nl.getParam("topics/control", control_topic_)) return false;
+    if (!nl.getParam("topics/cmd_vel", cmd_vel_topic_)) return false;
 
     // Control Mode
     if (!nl.getParam("control_mode", (int&)ctrl_mode_)) return false;
@@ -174,15 +179,18 @@ namespace controller {
 //set ref 
   reference_states_.setZero();
   reference_inputs_.setZero();
-
+  Quaternionf q;
+  q = AngleAxisf(msg->rpy.x, Vector3f::UnitX())
+	* AngleAxisf(msg->rpy.y, Vector3f::UnitY())
+	* AngleAxisf(msg->rpy.z, Vector3f::UnitZ());
       reference_states_ = (Eigen::Matrix<T, kStateSize, 1>() <<
       msg->p.x,
       msg->p.y,
       msg->p.z,
-      q_orientation.w(), // ??
-      q_orientation.x(),
-      q_orientation.y(),
-      q_orientation.z(),
+      q.w(), 
+      q.x(),
+      q.y(),
+      q.z(),
       msg->v.x,
       msg->v.y,
       msg->v.z,
@@ -222,19 +230,21 @@ namespace controller {
     quat_.w() = msg->q.w;
     quat_.normalize();
 */
-  est_state_(kPosX) = state_estimate.position.x();
-  est_state_(kPosY) = state_estimate.position.y();
-  est_state_(kPosZ) = state_estimate.position.z();
-  est_state_(kOriW) = state_estimate.orientation.w();
-  est_state_(kOriX) = state_estimate.orientation.x();
-  est_state_(kOriY) = state_estimate.orientation.y();
-  est_state_(kOriZ) = state_estimate.orientation.z();
-  est_state_(kVelX) = state_estimate.velocity.x();
-  est_state_(kVelY) = state_estimate.velocity.y();
-  est_state_(kVelZ) = state_estimate.velocity.z();
+  est_state_(kPosX) =  msg->p.x;
+  est_state_(kPosY) =  msg->p.y;
+  est_state_(kPosZ) =  msg->p.z;
+
+  est_state_(kVelX) = msg->v.x;
+  est_state_(kVelY) = msg->v.y;
+  est_state_(kVelZ) = msg->v.z;
+
+  est_state_(kOriW) = msg->q.w;
+  est_state_(kOriX) = msg->q.x;
+  est_state_(kOriY) = msg->q.y;
+  est_state_(kOriZ) = msg->q.z;
 
       // Get the feedback from MPC. 
-  mpc_wrapper_.setTrajectory(reference_states_, reference_inputs_); //What are ref states/inputs ??
+  mpc_wrapper_.setTrajectory(reference_states_, reference_inputs_); 
   mpc_wrapper_.update(est_state_, do_preparation_step); 
   mpc_wrapper_.getStates(predicted_states_);
   mpc_wrapper_.getInputs(predicted_inputs_);
@@ -243,7 +253,7 @@ namespace controller {
  Eigen::Ref<const Eigen::Matrix<T, kInputSize, 1>> input = predicted_inputs_.col(0)
  Eigen::Matrix<T, kInputSize, 1> input_bounded = input.template cast<T>();
   
-  // Bound inputs for sanity.
+  // Bound inputs for sanity. //TODO: hardcode params to avoid quadrotor common
   input_bounded(INPUT::kThrust) = std::max(params_.min_thrust_,
     std::min(params_.max_thrust_, input_bounded(INPUT::kThrust)));
   input_bounded(INPUT::kRateX) = std::max(-params_.max_bodyrate_xy_,
@@ -252,6 +262,7 @@ namespace controller {
     std::min(params_.max_bodyrate_xy_, input_bounded(INPUT::kRateY)));
   input_bounded(INPUT::kRateZ) = std::max(-params_.max_bodyrate_z_,
     std::min(params_.max_bodyrate_z_, input_bounded(INPUT::kRateZ)));
+
 /*
   command.collective_thrust = input_bounded(INPUT::kThrust);
   command.bodyrates.x() = input_bounded(INPUT::kRateX);
@@ -262,6 +273,23 @@ namespace controller {
   command.orientation.y() = state(STATE::kOriY);
   command.orientation.z() = state(STATE::kOriZ);
 */
+
+
+//Publish ACADO/MPC controller output TODO check this
+
+    testbed_msgs::CustOdometryStamped odom_msg;
+    odom_msg.header.stamp = ros::Time::now();
+    odom_msg.q.w = state(0);
+    odom_msg.q.x = state(1);
+    odom_msg.q.y = state(2);
+    odom_msg.q.z = state(3);
+
+    odom_msg.w.thrust = input_bounded(0);
+    odom_msg.w.x = input_bounded(1);
+    odom_msg.w.y = input_bounded(2);
+    odom_msg.w.z = input_bounded(3);
+
+    odom_pub.publish(odom_msg);
 
 /*
     // Compute dt
@@ -391,8 +419,9 @@ namespace controller {
               default:
         ROS_ERROR("%s: Unable to select the control mode.", name_.c_str());
     }
-*/
     control_pub_.publish(control_msg);
+*/
+
   }
 
 }
