@@ -7,7 +7,7 @@
   <arg name="topics/control_topic" default="control" />
 
   <!-- Control parameters. -->
-  <arg name="stabMode" value="1" /> <!-- 0: Angle 1: Rates -->
+  <arg name="stabMode" value="1" /> <!-- 1: Angle 0: Rates -->
 
   <arg name="g_vehicleMass" value="0.034" />
   <arg name="massThrust" value="132000" />
