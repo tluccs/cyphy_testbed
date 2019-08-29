@@ -11,6 +11,15 @@
 
 
 #define GRAVITY_MAGNITUDE (9.81f)
+#define MIN_THRUST 2.0
+#define MAX_THRUST 20.0
+#define MAX_BODYRATE_Z 2.0
+#define MAX_BODYRATE_XY 3.0
+#define MIN_BODYRATE_Z -MAX_BODYRATE_Z
+#define MIN_BODYRATE_XY -MAX_BODYRATE_XY
+
+
+
 
 namespace controller {
 
@@ -253,16 +262,15 @@ namespace controller {
  Eigen::Ref<const Eigen::Matrix<T, kInputSize, 1>> input = predicted_inputs_.col(0)
  Eigen::Matrix<T, kInputSize, 1> input_bounded = input.template cast<T>();
   
-  // Bound inputs for sanity. //TODO: hardcode params to avoid quadrotor common
-  input_bounded(INPUT::kThrust) = std::max(params_.min_thrust_,
-    std::min(params_.max_thrust_, input_bounded(INPUT::kThrust)));
-  input_bounded(INPUT::kRateX) = std::max(-params_.max_bodyrate_xy_,
-    std::min(params_.max_bodyrate_xy_, input_bounded(INPUT::kRateX)));
-  input_bounded(INPUT::kRateY) = std::max(-params_.max_bodyrate_xy_,
-    std::min(params_.max_bodyrate_xy_, input_bounded(INPUT::kRateY)));
-  input_bounded(INPUT::kRateZ) = std::max(-params_.max_bodyrate_z_,
-    std::min(params_.max_bodyrate_z_, input_bounded(INPUT::kRateZ)));
-
+  // Bound inputs for sanity. 
+  input_bounded(0) = std::max(MIN_THRUST,
+    std::min(MAX_THRUST, input_bounded(0)));
+  input_bounded(1) = std::max(MIN_BODYRATE_XY,
+    std::min(MAX_BODYRATE_XY, input_bounded(1)));
+  input_bounded(2) = std::max(MIN_BODYRATE_XY,
+    std::min(MAX_BODYRATE_XY, input_bounded(2)));
+  input_bounded(3) = std::max(MIN_BODYRATE_Z_,
+    std::min(MAX_BODYRATE_Z, input_bounded(3));
 /*
   command.collective_thrust = input_bounded(INPUT::kThrust);
   command.bodyrates.x() = input_bounded(INPUT::kRateX);
@@ -273,6 +281,7 @@ namespace controller {
   command.orientation.y() = state(STATE::kOriY);
   command.orientation.z() = state(STATE::kOriZ);
 */
+
 
 
 //Publish ACADO/MPC controller output TODO check this
