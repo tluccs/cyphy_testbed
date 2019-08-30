@@ -22,7 +22,7 @@
  */
 
 
-#include "rpg_mpc/mpc_controller.h"
+#include "mpc_controller.h"
 
 #include <ctime>
 

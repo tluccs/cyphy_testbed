@@ -1,3 +1,0 @@
-/home/t/catkin_wsCopy/catkin_ws_rpg_only/src/rpg_mpc/model/CMakeFiles/rebuild_cache.dir
-/home/t/catkin_wsCopy/catkin_ws_rpg_only/src/rpg_mpc/model/CMakeFiles/quadrotor_model_codegen.dir
-/home/t/catkin_wsCopy/catkin_ws_rpg_only/src/rpg_mpc/model/CMakeFiles/edit_cache.dir

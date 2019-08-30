@@ -24,7 +24,11 @@
 
 #pragma once
 
-#include <Eigen/Eigen>
+
+#ifndef MPC_WRAPPER_H
+#define MPC_WRAPPER_H
+
+#include <Eigen/Dense>
 #include <ros/ros.h>
 
 namespace rpg_mpc {
@@ -140,3 +144,5 @@ class MpcWrapper
 
 
 } // namespace MPC
+
+#endif

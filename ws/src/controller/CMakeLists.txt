@@ -48,6 +48,7 @@ add_dependencies(cmd_vel_converter_node
 target_link_libraries(
 	mellinger_controller_node
 	Eigen3::Eigen 
+	mpc_wrapper
 	${catkin_LIBRARIES}
 )
 
@@ -84,25 +85,8 @@ target_include_directories(mpc_solver PUBLIC
 add_library(mpc_wrapper
   src/mpc_wrapper.cpp)
 
-target_link_libraries(mpc_wrapper ${catkin_LIBRARIES})
+target_link_libraries(mpc_wrapper Eigen3::Eigen ${catkin_LIBRARIES})
 
 target_link_libraries(mpc_wrapper
   mpc_solver)
 
-add_library(mpc_controller
-  src/mpc_controller.cpp)
-
-target_link_libraries(mpc_controller ${catkin_LIBRARIES})
-
-target_link_libraries(mpc_controller 
-  mpc_wrapper)
-
-add_executable(autopilot_mpc_instance
-    exec/autopilot_mpc_instance.cpp)
-
-target_link_libraries(autopilot_mpc_instance ${catkin_LIBRARIES})
-  
-target_link_libraries(autopilot_mpc_instance
-    mpc_controller
-    mpc_wrapper
-    mpc_solver)
