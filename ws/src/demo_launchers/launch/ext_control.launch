@@ -8,7 +8,7 @@
 
   <!-- Control parameters. -->
   <arg name="stabMode" value="1" /> <!-- 0: Angle 1: Rates -->
-
+<!--
   <arg name="g_vehicleMass" value="0.034" />
   <arg name="massThrust" value="132000" />
 
@@ -44,15 +44,15 @@
   <arg name="i_error_m_x" value="0" />
   <arg name="i_error_m_y" value="0" />
   <arg name="i_error_m_z" value="0" />
-
+-->
   <arg name="control_mode" value="1"/> <!-- 0: Angle 1: Rates -->
 
   <!-- Mellinger controller. -->
-  <node name="mpc_controller"
+  <node name="mellinger_controller"
         pkg="controller"
-        type="autopilot_mpc_instance"
+        type="mellinger_controller_node"
         output="screen">
-
+<!--
     <param name="g_vehicleMass" value="$(arg g_vehicleMass)" />
     <param name="massThrust" value="$(arg massThrust)" />
     
@@ -89,9 +89,9 @@
     <param name="i_error_m_x" value="$(arg i_error_m_x)" />
     <param name="i_error_m_y" value="$(arg i_error_m_y)" />
     <param name="i_error_m_z" value="$(arg i_error_m_z)" />
-    
+-->
     <param name="control_mode" value="$(arg control_mode)" />
-    
+
     <param name="topics/setpoint" value="$(arg topics/setpoint_topic)" />
     <param name="topics/state" value="$(arg topics/state_topic)" />
     <param name="topics/control" value="$(arg topics/control_topic)" />
