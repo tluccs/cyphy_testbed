@@ -63,7 +63,7 @@
 
 namespace controller {
 
-enum ControlMode {
+enum class ControlMode {
   ANGLES, RATES, NUM_MODES
 };
   

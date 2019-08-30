@@ -283,6 +283,8 @@ all outputs of ACADO, not using orientation
 	
 	control_pub_.publish(control_msg);
 
+
+    control_pub_.publish(control_msg);
   }
 
 }
