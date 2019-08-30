@@ -7,7 +7,7 @@
 
 //EXTRA INCLUDES
 #include <ctime>
-
+#include "mpc_wrapper.h"
 
 
 #define GRAVITY_MAGNITUDE (9.81f)
@@ -18,21 +18,39 @@
 #define MIN_BODYRATE_Z -MAX_BODYRATE_Z
 #define MIN_BODYRATE_XY -MAX_BODYRATE_XY
 
+
+//STATE
 #define kPosX 0
 #define kPosY 1
 #define kPosZ 2
-#define kVelX 3
-#define kVelY 4
-#define kVelZ 5
-#define kOriW 6
-#define kOriX 7
-#define kOriY 8
-#define kOriZ 9
+#define kOriW 3
+#define kOriX 4
+#define kOriY 5
+#define kOriZ 6
+#define kVelX 7
+#define kVelY 8
+#define kVelZ 9
+
+//INPUT
+#define kThrust 0
+#define kRateX 1
+#define kRateY 2
+#define kRateZ 3
+
 
 #define do_preparation_step false
 
-
+//ACADO/MPC
 using namespace rpg_mpc;
+
+ MpcWrapper<float> mpc_wrapper_ = MpcWrapper<float>();
+Eigen::Matrix<float, kStateSize, 1> est_state_;
+
+Eigen::Matrix<float, kStateSize, kSamples+1> reference_states_ = Eigen::Matrix<float, kStateSize, kSamples+1>::Zero();
+Eigen::Matrix<float, kInputSize, kSamples+1> reference_inputs_ = Eigen::Matrix<float, kInputSize, kSamples+1>::Zero();
+Eigen::Matrix<float, kStateSize, kSamples+1> predicted_states_ = Eigen::Matrix<float, kStateSize, kSamples+1>::Zero();
+Eigen::Matrix<float, kInputSize, kSamples> predicted_inputs_ = Eigen::Matrix<float, kInputSize, kSamples>::Zero();
+  Eigen::Quaternionf q;
 
 namespace controller {
 
@@ -41,15 +59,8 @@ namespace controller {
  {
     name_ = ros::names::append(n.getNamespace(), "controller");
 
-
-	  MpcWrapper<float> mpc_wrapper_ = MpcWrapper<float>();
-	  Eigen::Matrix<float, kStateSize, 1> est_state_;
-	  est_state_ <<  0, 0, 0, 1, 0, 0, 0, 0, 0, 0; 
-	  Eigen::Matrix<float, kStateSize, kSamples+1> reference_states_ = Eigen::Matrix<float, kStateSize, kSamples+1>::Zero();
-	  Eigen::Matrix<float, kInputSize, kSamples+1> reference_inputs_ = Eigen::Matrix<float, kInputSize, kSamples+1>::Zero();
-	  Eigen::Matrix<float, kStateSize, kSamples+1> predicted_states_ = Eigen::Matrix<float, kStateSize, kSamples+1>::Zero();
-	  Eigen::Matrix<float, kInputSize, kSamples> predicted_inputs_ = Eigen::Matrix<float, kInputSize, kSamples>::Zero();
-
+	est_state_ <<  0, 0, 0, 1, 0, 0, 0, 0, 0, 0; 
+	 
     if (!LoadParameters(n)) {
       ROS_ERROR("%s: Failed to load parameters.", name_.c_str());
       return false;
@@ -164,7 +175,7 @@ namespace controller {
   reference_states_.setZero();
   reference_inputs_.setZero();
 //convert rpy to quaternion
-  Eigen::Quaternionf q;
+
   q = Eigen::AngleAxisf(msg->rpy.x, Eigen::Vector3f::UnitX())
 	* Eigen::AngleAxisf(msg->rpy.y, Eigen::Vector3f::UnitY())
 	* Eigen::AngleAxisf(msg->rpy.z, Eigen::Vector3f::UnitZ()); 
@@ -240,14 +251,14 @@ namespace controller {
  Eigen::Matrix<float, kInputSize, 1> input_bounded = input; //.template cast<float>();
   
   // Bound inputs for sanity. 
-  if (input_bounded(0) < MIN_THRUST){ input_bounded(0) = MIN_THRUST ; }
-  if (input_bounded(0) > MAX_THRUST){ input_bounded(0) = MAX_THRUST ; }
-  if (input_bounded(1) < MIN_BODYRATE_XY){ input_bounded(1) = MIN_BODYRATE_XY ; }
-  if (input_bounded(1) > MAX_BODYRATE_XY){ input_bounded(1) = MAX_BODYRATE_XY ; }
-  if (input_bounded(2) < MIN_BODYRATE_XY){ input_bounded(2) = MIN_BODYRATE_XY ; }
-  if (input_bounded(2) > MAX_BODYRATE_XY){ input_bounded(2) = MAX_BODYRATE_XY ; }
-  if (input_bounded(3) < MIN_BODYRATE_Z){ input_bounded(3) = MIN_BODYRATE_Z ; }
-  if (input_bounded(3) > MAX_BODYRATE_Z){ input_bounded(3) = MAX_BODYRATE_Z ; }
+  if (input_bounded(kThrust) < MIN_THRUST){ input_bounded(kThrust) = MIN_THRUST ; }
+  if (input_bounded(kThrust) > MAX_THRUST){ input_bounded(kThrust) = MAX_THRUST ; }
+  if (input_bounded(kRateX) < MIN_BODYRATE_XY){ input_bounded(kRateX) = MIN_BODYRATE_XY ; }
+  if (input_bounded(kRateX) > MAX_BODYRATE_XY){ input_bounded(kRateX) = MAX_BODYRATE_XY ; }
+  if (input_bounded(kRateY) < MIN_BODYRATE_XY){ input_bounded(kRateY) = MIN_BODYRATE_XY ; }
+  if (input_bounded(kRateY) > MAX_BODYRATE_XY){ input_bounded(kRateY) = MAX_BODYRATE_XY ; }
+  if (input_bounded(kRateZ) < MIN_BODYRATE_Z){ input_bounded(kRateZ) = MIN_BODYRATE_Z ; }
+  if (input_bounded(kRateZ) > MAX_BODYRATE_Z){ input_bounded(kRateZ) = MAX_BODYRATE_Z ; }
 
 /*
 all outputs of ACADO, not using orientation

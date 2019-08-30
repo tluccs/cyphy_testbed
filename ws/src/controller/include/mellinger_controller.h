@@ -59,8 +59,7 @@
 #include <math.h>
 #include <fstream>
 
-#include "mpc_wrapper.h"
-using namespace rpg_mpc;
+
 
 namespace controller {
 
@@ -187,14 +186,16 @@ class MellingerController {
   // // Load K, x_ref, u_ref from disk.
   // bool LoadFromDisk();
 
-	//ACADO/MPC stuff
-MpcWrapper<float> mpc_wrapper_;
+	//ACADO/MPC stuff MOVED TO .cpp FILE; DO NOT INCLUDE mpc_wrapper.h IN THIS FILE
+//MpcWrapper<float> mpc_wrapper_;
+/*
 Eigen::Matrix<float, kStateSize, 1> est_state_;
  Eigen::Matrix<float, kStateSize, kSamples+1> reference_states_;
  Eigen::Matrix<float, kInputSize, kSamples+1> reference_inputs_;
  Eigen::Matrix<float, kStateSize, kSamples+1> predicted_states_;
  Eigen::Matrix<float, kInputSize, kSamples> predicted_inputs_;
   Eigen::Quaternionf q;
+*/
 }; //\class MellingerController
 
 } 
