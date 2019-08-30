@@ -84,6 +84,7 @@ namespace controller {
     Reset();
 
     initialized_ = true;
+ROS_ERROR("INIT TRUE");
     return true;
   }
 
@@ -136,7 +137,7 @@ namespace controller {
 ROS_ERROR("Passed controller.cpp passed topics");
     // Control Mode
     if (!nl.getParam("control_mode", (int&)ctrl_mode_)) return false;
-    
+ROS_ERROR("LOAD: TRUE");
     return true;
   }
 
@@ -157,6 +158,7 @@ ROS_ERROR("Passed controller.cpp passed topics");
   // Reset variables
   void MellingerController::Reset(void)
   {
+ROS_ERROR("RESET");
     received_setpoint_ = false;
   reference_states_.setZero();
   reference_inputs_.setZero();
@@ -169,7 +171,7 @@ ROS_ERROR("Passed controller.cpp passed topics");
   // Process an incoming setpoint point change.
   void MellingerController::SetpointCallback(
       const testbed_msgs::ControlSetpoint::ConstPtr& msg) {
-   
+   ROS_ERROR("RECIEVED SP");
     received_setpoint_ = true;
 
 //set ref 
@@ -207,6 +209,7 @@ ROS_ERROR("Passed controller.cpp passed topics");
   // Process an incoming state measurement.
   void MellingerController::StateCallback(
       const testbed_msgs::CustOdometryStamped::ConstPtr& msg) {
+   ROS_ERROR("RECIEVED STATE");
     // Catch no setpoint.
     if (!received_setpoint_)
       return;
@@ -276,15 +279,16 @@ all outputs of ACADO, not using orientation
 //Publish output of ACADO/MPC  TODO check this
     testbed_msgs::ControlStamped control_msg;
 	control_msg.header.stamp = ros::Time::now();
-	control_msg.control.thrust = input_bounded(0);
-	control_msg.control.roll = input_bounded(1);
-	control_msg.control.pitch = input_bounded(2);
-	control_msg.control.yaw_dot = input_bounded(3);
+	control_msg.control.thrust = input_bounded(kThrust);
+	control_msg.control.roll = input_bounded(kRateX);
+	control_msg.control.pitch = input_bounded(kRateY);
+	control_msg.control.yaw_dot = input_bounded(kRateZ);
 	
 	control_pub_.publish(control_msg);
 
 
     control_pub_.publish(control_msg);
+    ROS_ERROR("PUBLISH CONTROL");
   }
 
 }
